@@ -36,17 +36,17 @@ publicKey, _ := user.PublicKey()
 // privateKey = "Pxxxxx.."
 privateKey, _ = user.PrivateKey()
 
-// Create a full User who can sign and verify verify from a private seed.
+// Create a full User who can sign and verify from a private seed.
 user, _ = FromSeed(seed)
 
-// Sign some data with a full key pair
+// Sign some data with a full key pair.
 data := []byte("Hello World")
 sig, _ := user.Sign(data)
 
-// Create a User who can only verify via public key only.
+// Create a User who can only verify via a public key.
 user, _ = FromPublicKey(publicKey)
 
-// Verify the signature
+// Verify the signature.
 err = user.Verify(data, sig)
 
 ```
