@@ -11,13 +11,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// An implementation of crc16 according to CCITT standards for XMODEM.
 package nkeys
 
 import (
 	"errors"
 )
 
+// An implementation of crc16 according to CCITT standards for XMODEM.
+
+// ErrInvalidChecksum indicates a failed verification.
 var ErrInvalidChecksum = errors.New("nkeys: invalid checksum")
 
 var crc16tab = [256]uint16{

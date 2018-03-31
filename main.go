@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Nkeys is an Ed25519 based public-key signature system that simplifies keys and seeds
+// Package nkeys is an Ed25519 based public-key signature system that simplifies keys and seeds
 // and performs signing and verification.
 package nkeys
 
