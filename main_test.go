@@ -391,4 +391,14 @@ func TestBadDecode(t *testing.T) {
 	if _, _, err := DecodeSeed(string(bseed)); err == nil {
 		t.Fatal("Expected error on DecodeSeed with bad prefix type\n")
 	}
+	if _, err := FromSeed(string(bseed)); err == nil {
+		t.Fatal("Expected error on FromSeed with bad prefix type\n")
+	}
+
+	if _, err := FromPublicKey(string(bpkey)); err == nil {
+		t.Fatal("Expected error on FromPublicKey with bad checksum\n")
+	}
+	if _, err := FromPublicKey(seed); err == nil {
+		t.Fatal("Expected error on FromPublicKey with bad checksum\n")
+	}
 }
