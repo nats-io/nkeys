@@ -4,7 +4,7 @@
 [![ReportCard](http://goreportcard.com/badge/nats-io/nkeys)](http://goreportcard.com/report/nats-io/nkeys)
 [![Build Status](https://travis-ci.org/nats-io/nkeys.svg?branch=master)](http://travis-ci.org/nats-io/nkeys)
 [![GoDoc](http://godoc.org/github.com/nats-io/nkeys?status.png)](http://godoc.org/github.com/nats-io/nkeys)
-[![Coverage Status](https://coveralls.io/repos/github/nats-io/nkeys/badge.svg?branch=master)](https://coveralls.io/github/nats-io/nkeys?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/nats-io/nkeys/badge.svg?branch=master&service=github)](https://coveralls.io/github/nats-io/nkeys?branch=master)
 
 A public-key signature system based on [Ed25519](https://ed25519.cr.yp.to/) for the NATS ecosystem.
 
