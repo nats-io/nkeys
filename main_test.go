@@ -234,6 +234,20 @@ func TestFromPublic(t *testing.T) {
 		t.Fatalf("Error creating public key only user: %v\n", err)
 	}
 
+	pubUser, err = FromPublicKey(publicKey)
+	if err != nil {
+		t.Fatalf("Error creating public key only user: %v\n", err)
+	}
+
+	publicKey2, err := pubUser.PublicKey()
+	if err != nil {
+		t.Fatalf("Error retrieving public key from public user: %v\n", err)
+	}
+	// Make sure they match
+	if strings.Compare(publicKey2, publicKey) != 0 {
+		t.Fatalf("Expected the public keys to match\n")
+	}
+
 	if _, err = pubUser.PrivateKey(); err == nil {
 		t.Fatalf("Expected and error trying to get private key\n")
 	}
@@ -257,6 +271,21 @@ func TestFromPublic(t *testing.T) {
 	err = pubUser.Verify(data, sig)
 	if err != nil {
 		t.Fatalf("Unexpected error verifying signature: %v\n", err)
+	}
+
+	// Create another user to sign and make sure verify fails.
+	user2, _ := CreateUser(nil)
+	sig, _ = user2.Sign(data)
+
+	err = pubUser.Verify(data, sig)
+	if err == nil {
+		t.Fatalf("Expected verification to fail.\n")
+	}
+
+	badUser := &pub{"USERBAD"}
+	err = badUser.Verify(data, sig)
+	if err == nil {
+		t.Fatalf("Expected verification to fail.\n")
 	}
 }
 
@@ -294,5 +323,72 @@ func TestFromSeed(t *testing.T) {
 	err = account2.Verify(data, sig)
 	if err != nil {
 		t.Fatalf("Unexpected error verifying signature: %v\n", err)
+	}
+}
+
+func TestKeyPairFailures(t *testing.T) {
+	var tooshort [8]byte
+	if _, err := createPair(bytes.NewReader(tooshort[:]), PrefixByteUser); err == nil {
+		t.Fatal("Expected an error with insufficient rand\n")
+	}
+
+	if _, err := createPair(nil, PrefixBytePrivate); err == nil {
+		t.Fatal("Expected an error with non-public prefix\n")
+	}
+	kpbad := &kp{"SEEDBAD"}
+	if _, _, err := kpbad.keys(); err == nil {
+		t.Fatal("Expected an error decoding keys with a bad seed\n")
+	}
+	if _, err := kpbad.PublicKey(); err == nil {
+		t.Fatal("Expected an error getting PublicKey from KP with a bad seed\n")
+	}
+	if _, err := kpbad.PrivateKey(); err == nil {
+		t.Fatal("Expected an error getting PrivateKey from KP with a bad seed\n")
+	}
+	if _, err := kpbad.Sign([]byte("ok")); err == nil {
+		t.Fatal("Expected an error from Signing from KP with a bad seed\n")
+	}
+}
+
+func TestBadDecode(t *testing.T) {
+	if _, err := decode("foo!"); err == nil {
+		t.Fatal("Expected an error decoding non-base32\n")
+	}
+	if _, err := decode("OK"); err == nil {
+		t.Fatal("Expected an error decoding a too short string\n")
+	}
+
+	// Create invalid checksum
+	account, _ := CreateAccount(nil)
+	pkey, _ := account.PublicKey()
+	bpkey := []byte(pkey)
+	bpkey[len(pkey)-1] = '0'
+	bpkey[len(pkey)-2] = '0'
+	if _, err := decode(string(bpkey)); err == nil {
+		t.Fatal("Expected error on decode with bad checksum\n")
+	}
+
+	if _, err := Decode(PrefixByteUser, pkey); err == nil {
+		t.Fatal("Expected error on Decode with mismatched prefix\n")
+	}
+	if _, err := Decode(PrefixByte(3<<3), pkey); err == nil {
+		t.Fatal("Expected error on Decode with invalid prefix\n")
+	}
+	if _, err := Decode(PrefixByteAccount, string(bpkey)); err == nil {
+		t.Fatal("Expected error on Decode with bad checksum\n")
+	}
+	// Seed version
+	if _, _, err := DecodeSeed(string(bpkey)); err == nil {
+		t.Fatal("Expected error on DecodeSeed with bad checksum\n")
+	}
+	if _, _, err := DecodeSeed(pkey); err == nil {
+		t.Fatal("Expected error on DecodeSeed with bad seed type\n")
+	}
+
+	seed, _ := account.Seed()
+	bseed := []byte(seed)
+	bseed[1] = 'S'
+	if _, _, err := DecodeSeed(string(bseed)); err == nil {
+		t.Fatal("Expected error on DecodeSeed with bad prefix type\n")
 	}
 }

@@ -115,6 +115,10 @@ func decode(src string) ([]byte, error) {
 		return nil, err
 	}
 
+	if len(raw) < 4 {
+		return nil, ErrInvalidEncoding
+	}
+
 	var crc uint16
 	checksum := bytes.NewReader(raw[len(raw)-2:])
 	if err := binary.Read(checksum, binary.LittleEndian, &crc); err != nil {
