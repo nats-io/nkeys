@@ -170,6 +170,30 @@ func DecodeSeed(src string) (PrefixByte, []byte, error) {
 	return PrefixByte(b2), raw[2:], nil
 }
 
+// IsValidPublicUserKey will decode and verify the string is a valid encoded Public User Key.
+func IsValidPublicUserKey(src string) bool {
+	_, err := Decode(PrefixByteUser, src)
+	return err == nil
+}
+
+// IsValidPublicAccountKey will decode and verify the string is a valid encoded Public Account Key.
+func IsValidPublicAccountKey(src string) bool {
+	_, err := Decode(PrefixByteAccount, src)
+	return err == nil
+}
+
+// IsValidPublicServerKey will decode and verify the string is a valid encoded Public Server Key.
+func IsValidPublicServerKey(src string) bool {
+	_, err := Decode(PrefixByteServer, src)
+	return err == nil
+}
+
+// IsValidPublicClusterKey will decode and verify the string is a valid encoded Public Cluster Key.
+func IsValidPublicClusterKey(src string) bool {
+	_, err := Decode(PrefixByteCluster, src)
+	return err == nil
+}
+
 // checkValidPrefixByte returns an error if the provided value
 // is not one of the defined valid prefix byte constants.
 func checkValidPrefixByte(prefix PrefixByte) error {
