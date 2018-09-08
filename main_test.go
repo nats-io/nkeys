@@ -241,6 +241,10 @@ func TestFromPublic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error retrieving public key from user: %v", err)
 	}
+	publicKeyClone, err := user.PublicKey()
+	if strings.Compare(publicKeyClone, publicKey) != 0 {
+		t.Fatalf("Expected the public keys to match: %q vs %q", publicKeyClone, publicKey)
+	}
 
 	pubUser, err := FromPublicKey(publicKey)
 	if err != nil {
@@ -253,7 +257,7 @@ func TestFromPublic(t *testing.T) {
 	}
 	// Make sure they match
 	if strings.Compare(publicKey2, publicKey) != 0 {
-		t.Fatalf("Expected the public keys to match")
+		t.Fatalf("Expected the public keys to match: %q vs %q", publicKey2, publicKey)
 	}
 
 	if _, err = pubUser.PrivateKey(); err == nil {
@@ -286,12 +290,6 @@ func TestFromPublic(t *testing.T) {
 	sig, _ = user2.Sign(data)
 
 	err = pubUser.Verify(data, sig)
-	if err == nil {
-		t.Fatalf("Expected verification to fail.")
-	}
-
-	badUser := &pub{"USERBAD"}
-	err = badUser.Verify(data, sig)
 	if err == nil {
 		t.Fatalf("Expected verification to fail.")
 	}

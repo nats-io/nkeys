@@ -17,15 +17,16 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-// A KeyPair capable fo verifying only.
+// A KeyPair from a public key capable of verifying only.
 type pub struct {
-	publicKey string
+	pre PrefixByte
+	pub ed25519.PublicKey
 }
 
 // PublicKey will return the encoded public key associated with the KeyPair.
 // All KeyPairs have a public key.
 func (p *pub) PublicKey() (string, error) {
-	return p.publicKey, nil
+	return Encode(p.pre, p.pub)
 }
 
 // Seed will return an error since this is not available for public key only KeyPairs.
@@ -45,11 +46,7 @@ func (p *pub) Sign(input []byte) ([]byte, error) {
 
 // Verify will verify the input against a signature utilizing the public key.
 func (p *pub) Verify(input []byte, sig []byte) error {
-	raw, err := decode(p.publicKey)
-	if err != nil {
-		return err
-	}
-	if !ed25519.Verify(raw[1:], input, sig) {
+	if !ed25519.Verify(p.pub, input, sig) {
 		return ErrInvalidSignature
 	}
 	return nil
