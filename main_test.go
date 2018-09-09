@@ -182,6 +182,28 @@ func TestUser(t *testing.T) {
 	}
 }
 
+func TestOperator(t *testing.T) {
+	operator, err := CreateOperator(nil)
+	if err != nil {
+		t.Fatalf("Expected non-nil error on CreateOperator, received %v", err)
+	}
+	if operator == nil {
+		t.Fatal("Expect a non-nil operator")
+	}
+
+	// Check Public
+	public, err := operator.PublicKey()
+	if err != nil {
+		t.Fatalf("Received an error retrieving public key: %v", err)
+	}
+	if public[0] != 'O' {
+		t.Fatalf("Expected a prefix of 'O' but got %c", public[0])
+	}
+	if !IsValidPublicOperatorKey(public) {
+		t.Fatalf("Not a valid public cluster key")
+	}
+}
+
 func TestCluster(t *testing.T) {
 	cluster, err := CreateCluster(nil)
 	if err != nil {

@@ -37,6 +37,9 @@ const (
 	//PrefixByteCluster is the version byte used for encoded NATS Clusters
 	PrefixByteCluster PrefixByte = 2 << 3 // Base32-encodes to 'C...'
 
+	//PrefixByteOperator is the version byte used for encoded NATS Operators
+	PrefixByteOperator PrefixByte = 14 << 3 // Base32-encodes to 'O...'
+
 	//PrefixByteAccount is the version byte used for encoded NATS Accounts
 	PrefixByteAccount PrefixByte = 0 // Base32-encodes to 'A...'
 
@@ -194,9 +197,18 @@ func IsValidPublicClusterKey(src string) bool {
 	return err == nil
 }
 
+// IsValidPublicOperatorKey will decode and verify the string is a valid encoded Public Operator Key.
+func IsValidPublicOperatorKey(src string) bool {
+	_, err := Decode(PrefixByteOperator, src)
+	return err == nil
+}
+
 // checkValidPrefixByte returns an error if the provided value
 // is not one of the defined valid prefix byte constants.
 func checkValidPrefixByte(prefix PrefixByte) error {
+	if prefix == PrefixByteOperator {
+		return nil
+	}
 	if prefix == PrefixByteServer {
 		return nil
 	}
@@ -225,6 +237,9 @@ func checkValidPublicPrefixByte(prefix PrefixByte) error {
 		return nil
 	}
 	if prefix == PrefixByteCluster {
+		return nil
+	}
+	if prefix == PrefixByteOperator {
 		return nil
 	}
 	if prefix == PrefixByteAccount {
