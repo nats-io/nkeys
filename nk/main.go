@@ -126,20 +126,26 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 	if sigFile == "" {
 		log.Fatalf("Verify requires a signature via -sigfile")
 	}
+	var err error
 	var kp nkeys.KeyPair
 	if keyFile != "" {
-		seed, err := ioutil.ReadFile(keyFile)
+		var seed []byte
+		seed, err = ioutil.ReadFile(keyFile)
 		if err != nil {
 			log.Fatal(err)
 		}
 		kp, err = nkeys.FromSeed(string(seed))
 	} else {
 		// Public Key
-		public, err := ioutil.ReadFile(pubFile)
+		var public []byte
+		public, err = ioutil.ReadFile(pubFile)
 		if err != nil {
 			log.Fatal(err)
 		}
 		kp, err = nkeys.FromPublicKey(string(public))
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	content, err := ioutil.ReadFile(fname)
