@@ -24,7 +24,11 @@ Use the `go` command:
 
 	$ go get github.com/nats-io/nkeys
 
-## Basic Usage
+## nk - Command Line Utility
+
+Located under the nk [directory](https://github.com/nats-io/nkeys/tree/master/nk).
+
+## Basic API Usage
 ```go
 
 // Create a new User KeyPair

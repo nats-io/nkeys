@@ -16,15 +16,15 @@ The nk utility program can be used to generate nkeys, signing, and verify signat
 
 -gen type
 
->Used to create an Nkey Seed of a given type. Type can be **User**, **Account**, **Server**, **Cluster**, or **Operator**
+Used to create an Nkey Seed of a given type. Type can be **User**, **Account**, **Server**, **Cluster**, or **Operator**
 
 -sign file
 
->Used to sign the contents of file. -inkey is also required.
+Used to sign the contents of file. -inkey is also required.
 
 -verify file -sigfile sig
 
->Used to verify a file with a given signature. -inkey or -pubin also required.
+Used to verify a file with a given signature. -inkey or -pubin also required.
 
 ## Examples
 
@@ -64,3 +64,8 @@ verification succeeded
 > nk -verify some.txt -sigfile some.sig -pubin user.pub
 verification succeeded
 ```
+
+## License
+
+Unless otherwise noted, the NATS source files are distributed
+under the Apache Version 2.0 license found in the LICENSE file.
