@@ -16,6 +16,7 @@ package main
 import (
 	"encoding/base64"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -25,8 +26,11 @@ import (
 	"github.com/nats-io/nkeys"
 )
 
+// this will be set during compilation when a release is made on tools
+var Version string
+
 func usage() {
-	log.Fatalf("Usage: nk [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-pubout] [-e entropy]\n")
+	log.Fatalf("Usage: nk [-v] [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-pubout] [-e entropy]\n")
 }
 
 func main() {
@@ -42,11 +46,17 @@ func main() {
 	var keyType = flag.String("gen", "", "Generate key for <type>, e.g. nk -gen user")
 	var pubout = flag.Bool("pubout", false, "Output public key")
 
+	var version = flag.Bool("v", false, "Show version")
+
 	log.SetFlags(0)
 	log.SetOutput(os.Stdout)
 
 	flag.Usage = usage
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("nk version %s\n", Version)
+	}
 
 	// Create Key
 	if *keyType != "" {

@@ -7,7 +7,7 @@ release:
   draft: true
 builds:
   - main: ./nk/main.go
-    ldflags: "-X github.com/nats-io/nkeys/version.VERSION={{.Tag}}_{{.Commit}}"
+    ldflags: "-X main.Version={{.Tag}}_{{.Commit}}"
     binary: nk
     goos:
       - linux
