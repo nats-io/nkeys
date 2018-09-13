@@ -117,7 +117,7 @@ func sign(fname, keyFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%s", base64.RawURLEncoding.EncodeToString(sigraw))
+	log.Printf("%s", base64.StdEncoding.EncodeToString(sigraw))
 }
 
 func verify(fname, keyFile, pubFile, sigFile string) {
@@ -158,7 +158,7 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sig, err := base64.RawURLEncoding.DecodeString(string(sigEnc))
+	sig, err := base64.StdEncoding.DecodeString(string(sigEnc))
 	if err != nil {
 		log.Fatal(err)
 	}
