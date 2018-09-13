@@ -32,7 +32,7 @@ Located under the nk [directory](https://github.com/nats-io/nkeys/tree/master/nk
 ```go
 
 // Create a new User KeyPair
-user, _ := CreateUser(nil) // Can supply an io.Reader for RND.
+user, _ := nkeys.CreateUser()
 
 // Sign some data with a full key pair user.
 data := []byte("Hello World")
@@ -42,22 +42,23 @@ sig, _ := user.Sign(data)
 err = user.Verify(data, sig)
 
 // Access the seed, the only thing that needs to be stored and kept safe.
-// seed = "SUAFXUA5H7BZERZSXYITNDSCBZE7ZZ..."
+// seed = "SUAKYRHVIOREXV7EUZTBHUHL7NUMHPMAS7QMDU3GTIUWEI5LDNOXD43IZY"
 seed, _ := user.Seed()
 
 // Access the public key which can be shared.
-// publicKey = "UAFXUA5H7BZERZSXYITNDSCBZE7ZZ..."
+// publicKey = "UD466L6EBCM3YY5HEGHJANNTN4LSKTSUXTH7RILHCKEQMQHTBNLHJJXT"
 publicKey, _ := user.PublicKey()
 
 // Create a full User who can sign and verify from a private seed.
-user, _ = FromSeed(seed)
+user, _ = nkeys.FromSeed(seed)
 
-// Create a User who can only verify via a public key.
-user, _ = FromPublicKey(publicKey)
+// Create a User who can only verify signatures via a public key.
+user, _ = nkeys.FromPublicKey(publicKey)
 
-// Access the private key
-// privateKey = "PAFXUA5H7BZERZSXYITNDSCBZE7ZZ..."
-privateKey, _ = user.PrivateKey()
+// Create a User KeyPair with our own random data.
+var rawSeed [32]byte
+_, err := io.ReadFull(rand.Reader, rawSeed[:])  // Or some other random source.
+user2, _ := nkeys.FromRawSeed(PrefixByteUser, rawSeed)
 
 ```
 
