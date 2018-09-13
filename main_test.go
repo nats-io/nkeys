@@ -431,6 +431,23 @@ func TestBadDecode(t *testing.T) {
 	}
 }
 
+func TestFromRawSeed(t *testing.T) {
+	user, err := CreateUser()
+	if err != nil {
+		t.Fatalf("Expected non-nil error on CreateUser, received %v", err)
+	}
+	se, _ := user.Seed()
+	_, raw, _ := DecodeSeed(se)
+	user2, err := FromRawSeed(PrefixByteUser, raw)
+	if err != nil {
+		t.Fatalf("Expected non-nil error on FromRawSeed, received %v", err)
+	}
+	s2e, _ := user2.Seed()
+	if strings.Compare(se, s2e) != 0 {
+		t.Fatalf("Expected the seeds to be the same, got %v vs %v\n", se, s2e)
+	}
+}
+
 const (
 	nonceRawLen = 16
 	nonceLen    = 22 // base64.RawURLEncoding.EncodedLen(nonceRawLen)
