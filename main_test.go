@@ -66,7 +66,7 @@ func TestDecode(t *testing.T) {
 }
 
 func TestSeed(t *testing.T) {
-	var rawKeyShort [32]byte
+	var rawKeyShort [16]byte
 
 	_, err := io.ReadFull(rand.Reader, rawKeyShort[:])
 	if err != nil {
@@ -81,7 +81,7 @@ func TestSeed(t *testing.T) {
 		t.Fatalf("Did not receive ErrInvalidPrefixByte error, received %v", err)
 	}
 
-	var rawSeed [64]byte
+	var rawSeed [ed25519.SeedSize]byte
 
 	_, err = io.ReadFull(rand.Reader, rawSeed[:])
 	if err != nil {
@@ -107,7 +107,7 @@ func TestSeed(t *testing.T) {
 }
 
 func TestAccount(t *testing.T) {
-	account, err := CreateAccount(nil)
+	account, err := CreateAccount()
 	if err != nil {
 		t.Fatalf("Expected non-nil error on CreateAccount, received %v", err)
 	}
@@ -161,7 +161,7 @@ func TestAccount(t *testing.T) {
 }
 
 func TestUser(t *testing.T) {
-	user, err := CreateUser(nil)
+	user, err := CreateUser()
 	if err != nil {
 		t.Fatalf("Expected non-nil error on CreateUser, received %v", err)
 	}
@@ -183,7 +183,7 @@ func TestUser(t *testing.T) {
 }
 
 func TestOperator(t *testing.T) {
-	operator, err := CreateOperator(nil)
+	operator, err := CreateOperator()
 	if err != nil {
 		t.Fatalf("Expected non-nil error on CreateOperator, received %v", err)
 	}
@@ -205,7 +205,7 @@ func TestOperator(t *testing.T) {
 }
 
 func TestCluster(t *testing.T) {
-	cluster, err := CreateCluster(nil)
+	cluster, err := CreateCluster()
 	if err != nil {
 		t.Fatalf("Expected non-nil error on CreateCluster, received %v", err)
 	}
@@ -227,7 +227,7 @@ func TestCluster(t *testing.T) {
 }
 
 func TestServer(t *testing.T) {
-	server, err := CreateServer(nil)
+	server, err := CreateServer()
 	if err != nil {
 		t.Fatalf("Expected non-nil error on CreateServer, received %v", err)
 	}
@@ -250,7 +250,7 @@ func TestServer(t *testing.T) {
 
 func TestFromPublic(t *testing.T) {
 	// Create a User
-	user, err := CreateUser(nil)
+	user, err := CreateUser()
 	if err != nil {
 		t.Fatalf("Expected non-nil error on CreateUser, received %v", err)
 	}
@@ -308,7 +308,7 @@ func TestFromPublic(t *testing.T) {
 	}
 
 	// Create another user to sign and make sure verify fails.
-	user2, _ := CreateUser(nil)
+	user2, _ := CreateUser()
 	sig, _ = user2.Sign(data)
 
 	err = pubUser.Verify(data, sig)
@@ -318,7 +318,7 @@ func TestFromPublic(t *testing.T) {
 }
 
 func TestFromSeed(t *testing.T) {
-	account, err := CreateAccount(nil)
+	account, err := CreateAccount()
 	if err != nil {
 		t.Fatalf("Expected non-nil error on CreateAccount, received %v", err)
 	}
@@ -356,11 +356,11 @@ func TestFromSeed(t *testing.T) {
 
 func TestKeyPairFailures(t *testing.T) {
 	var tooshort [8]byte
-	if _, err := createPair(bytes.NewReader(tooshort[:]), PrefixByteUser); err == nil {
+	if _, err := EncodeSeed(PrefixByteUser, tooshort[:]); err == nil {
 		t.Fatal("Expected an error with insufficient rand")
 	}
 
-	if _, err := createPair(nil, PrefixBytePrivate); err == nil {
+	if _, err := createPair(PrefixBytePrivate); err == nil {
 		t.Fatal("Expected an error with non-public prefix")
 	}
 	kpbad := &kp{"SEEDBAD"}
@@ -387,7 +387,7 @@ func TestBadDecode(t *testing.T) {
 	}
 
 	// Create invalid checksum
-	account, _ := CreateAccount(nil)
+	account, _ := CreateAccount()
 	pkey, _ := account.PublicKey()
 	bpkey := []byte(pkey)
 	bpkey[len(pkey)-1] = '0'
@@ -431,6 +431,23 @@ func TestBadDecode(t *testing.T) {
 	}
 }
 
+func TestFromRawSeed(t *testing.T) {
+	user, err := CreateUser()
+	if err != nil {
+		t.Fatalf("Expected non-nil error on CreateUser, received %v", err)
+	}
+	se, _ := user.Seed()
+	_, raw, _ := DecodeSeed(se)
+	user2, err := FromRawSeed(PrefixByteUser, raw)
+	if err != nil {
+		t.Fatalf("Expected non-nil error on FromRawSeed, received %v", err)
+	}
+	s2e, _ := user2.Seed()
+	if strings.Compare(se, s2e) != 0 {
+		t.Fatalf("Expected the seeds to be the same, got %v vs %v\n", se, s2e)
+	}
+}
+
 const (
 	nonceRawLen = 16
 	nonceLen    = 22 // base64.RawURLEncoding.EncodedLen(nonceRawLen)
@@ -442,7 +459,7 @@ func BenchmarkSign(b *testing.B) {
 	rand.Read(data)
 	base64.RawURLEncoding.Encode(nonce, data)
 
-	user, err := CreateUser(nil)
+	user, err := CreateUser()
 	if err != nil {
 		b.Fatalf("Error creating User Nkey: %v", err)
 	}
@@ -461,7 +478,7 @@ func BenchmarkVerify(b *testing.B) {
 	rand.Read(data)
 	base64.RawURLEncoding.Encode(nonce, data)
 
-	user, err := CreateUser(nil)
+	user, err := CreateUser()
 	if err != nil {
 		b.Fatalf("Error creating User Nkey: %v", err)
 	}
@@ -484,7 +501,7 @@ func BenchmarkPublicVerify(b *testing.B) {
 	rand.Read(data)
 	base64.RawURLEncoding.Encode(nonce, data)
 
-	user, err := CreateUser(nil)
+	user, err := CreateUser()
 	if err != nil {
 		b.Fatalf("Error creating User Nkey: %v", err)
 	}

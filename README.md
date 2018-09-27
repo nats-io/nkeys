@@ -3,8 +3,9 @@
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![ReportCard](http://goreportcard.com/badge/nats-io/nkeys)](http://goreportcard.com/report/nats-io/nkeys)
 [![Build Status](https://travis-ci.org/nats-io/nkeys.svg?branch=master)](http://travis-ci.org/nats-io/nkeys)
-[![GoDoc](http://godoc.org/github.com/nats-io/nkeys?status.png)](http://godoc.org/github.com/nats-io/nkeys)
+[![GoDoc](http://godoc.org/github.com/nats-io/nkeys?status.svg)](http://godoc.org/github.com/nats-io/nkeys)
 [![Coverage Status](https://coveralls.io/repos/github/nats-io/nkeys/badge.svg?branch=master&service=github)](https://coveralls.io/github/nats-io/nkeys?branch=master)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnats-io%2Fnkeys.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnats-io%2Fnkeys?ref=badge_shield)
 
 A public-key signature system based on [Ed25519](https://ed25519.cr.yp.to/) for the NATS ecosystem.
 
@@ -32,7 +33,7 @@ Located under the nk [directory](https://github.com/nats-io/nkeys/tree/master/nk
 ```go
 
 // Create a new User KeyPair
-user, _ := CreateUser(nil) // Can supply an io.Reader for RND.
+user, _ := nkeys.CreateUser()
 
 // Sign some data with a full key pair user.
 data := []byte("Hello World")
@@ -42,22 +43,23 @@ sig, _ := user.Sign(data)
 err = user.Verify(data, sig)
 
 // Access the seed, the only thing that needs to be stored and kept safe.
-// seed = "SUAFXUA5H7BZERZSXYITNDSCBZE7ZZ..."
+// seed = "SUAKYRHVIOREXV7EUZTBHUHL7NUMHPMAS7QMDU3GTIUWEI5LDNOXD43IZY"
 seed, _ := user.Seed()
 
 // Access the public key which can be shared.
-// publicKey = "UAFXUA5H7BZERZSXYITNDSCBZE7ZZ..."
+// publicKey = "UD466L6EBCM3YY5HEGHJANNTN4LSKTSUXTH7RILHCKEQMQHTBNLHJJXT"
 publicKey, _ := user.PublicKey()
 
 // Create a full User who can sign and verify from a private seed.
-user, _ = FromSeed(seed)
+user, _ = nkeys.FromSeed(seed)
 
-// Create a User who can only verify via a public key.
-user, _ = FromPublicKey(publicKey)
+// Create a User who can only verify signatures via a public key.
+user, _ = nkeys.FromPublicKey(publicKey)
 
-// Access the private key
-// privateKey = "PAFXUA5H7BZERZSXYITNDSCBZE7ZZ..."
-privateKey, _ = user.PrivateKey()
+// Create a User KeyPair with our own random data.
+var rawSeed [32]byte
+_, err := io.ReadFull(rand.Reader, rawSeed[:])  // Or some other random source.
+user2, _ := nkeys.FromRawSeed(PrefixByteUser, rawSeed)
 
 ```
 
@@ -65,3 +67,6 @@ privateKey, _ = user.PrivateKey()
 
 Unless otherwise noted, the NATS source files are distributed
 under the Apache Version 2.0 license found in the LICENSE file.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnats-io%2Fnkeys.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnats-io%2Fnkeys?ref=badge_large)
