@@ -28,8 +28,11 @@ import (
 	"github.com/nats-io/nkeys"
 )
 
+// this will be set during compilation when a release is made on tools
+var Version string
+
 func usage() {
-	log.Fatalf("Usage: nk [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-sigfile file] [-pubout] [-e entropy]\n")
+	log.Fatalf("Usage: nk [-v] [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-sigfile file] [-pubout] [-e entropy]\n")
 }
 
 func main() {
@@ -45,6 +48,8 @@ func main() {
 	var keyType = flag.String("gen", "", "Generate key for <type>, e.g. nk -gen user")
 	var pubout = flag.Bool("pubout", false, "Output public key")
 
+
+	var version = flag.Bool("v", false, "Show version")
 	var vanPre = flag.String("pre", "", "Attempt to generate public key given prefix, e.g. nk -gen user -pre derek")
 	var vanMax = flag.Int("maxpre", 1000000, "Maximum attempts at generating the correct key prefix")
 
@@ -53,6 +58,10 @@ func main() {
 
 	flag.Usage = usage
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("nk version %s\n", Version)
+	}
 
 	// Create Key
 	if *keyType != "" {
