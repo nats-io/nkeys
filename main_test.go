@@ -18,7 +18,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
-	"strings"
 	"testing"
 
 	"golang.org/x/crypto/ed25519"
@@ -39,7 +38,7 @@ func TestEncode(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error from Encode but received nil")
 	}
-	if str != "" {
+	if str != nil {
 		t.Fatalf("Expected empty string from Encode: got %s", str)
 	}
 }
@@ -264,7 +263,7 @@ func TestFromPublic(t *testing.T) {
 		t.Fatalf("Error retrieving public key from user: %v", err)
 	}
 	publicKeyClone, err := user.PublicKey()
-	if strings.Compare(publicKeyClone, publicKey) != 0 {
+	if bytes.Compare(publicKeyClone, publicKey) != 0 {
 		t.Fatalf("Expected the public keys to match: %q vs %q", publicKeyClone, publicKey)
 	}
 
@@ -278,7 +277,7 @@ func TestFromPublic(t *testing.T) {
 		t.Fatalf("Error retrieving public key from public user: %v", err)
 	}
 	// Make sure they match
-	if strings.Compare(publicKey2, publicKey) != 0 {
+	if bytes.Compare(publicKey2, publicKey) != 0 {
 		t.Fatalf("Expected the public keys to match: %q vs %q", publicKey2, publicKey)
 	}
 
@@ -337,7 +336,7 @@ func TestFromSeed(t *testing.T) {
 		t.Fatalf("Unexpected error retrieving seed: %v", err)
 	}
 	// Make sure the seed starts with SA
-	if !strings.HasPrefix(seed, "SA") {
+	if !bytes.HasPrefix(seed, []byte("SA")) {
 		t.Fatalf("Expected seed to start with 'SA', go '%s'", seed[:2])
 	}
 
@@ -363,7 +362,7 @@ func TestKeyPairFailures(t *testing.T) {
 	if _, err := createPair(PrefixBytePrivate); err == nil {
 		t.Fatal("Expected an error with non-public prefix")
 	}
-	kpbad := &kp{"SEEDBAD"}
+	kpbad := &kp{[]byte("SEEDBAD")}
 	if _, _, err := kpbad.keys(); err == nil {
 		t.Fatal("Expected an error decoding keys with a bad seed")
 	}
@@ -379,10 +378,10 @@ func TestKeyPairFailures(t *testing.T) {
 }
 
 func TestBadDecode(t *testing.T) {
-	if _, err := decode("foo!"); err == nil {
+	if _, err := decode([]byte("foo!")); err == nil {
 		t.Fatal("Expected an error decoding non-base32")
 	}
-	if _, err := decode("OK"); err == nil {
+	if _, err := decode([]byte("OK")); err == nil {
 		t.Fatal("Expected an error decoding a too short string")
 	}
 
@@ -392,7 +391,7 @@ func TestBadDecode(t *testing.T) {
 	bpkey := []byte(pkey)
 	bpkey[len(pkey)-1] = '0'
 	bpkey[len(pkey)-2] = '0'
-	if _, err := decode(string(bpkey)); err == nil {
+	if _, err := decode(bpkey); err == nil {
 		t.Fatal("Expected error on decode with bad checksum")
 	}
 
@@ -402,11 +401,11 @@ func TestBadDecode(t *testing.T) {
 	if _, err := Decode(PrefixByte(3<<3), pkey); err == nil {
 		t.Fatal("Expected error on Decode with invalid prefix")
 	}
-	if _, err := Decode(PrefixByteAccount, string(bpkey)); err == nil {
+	if _, err := Decode(PrefixByteAccount, bpkey); err == nil {
 		t.Fatal("Expected error on Decode with bad checksum")
 	}
 	// Seed version
-	if _, _, err := DecodeSeed(string(bpkey)); err == nil {
+	if _, _, err := DecodeSeed(bpkey); err == nil {
 		t.Fatal("Expected error on DecodeSeed with bad checksum")
 	}
 	if _, _, err := DecodeSeed(pkey); err == nil {
@@ -416,14 +415,14 @@ func TestBadDecode(t *testing.T) {
 	seed, _ := account.Seed()
 	bseed := []byte(seed)
 	bseed[1] = 'S'
-	if _, _, err := DecodeSeed(string(bseed)); err == nil {
+	if _, _, err := DecodeSeed(bseed); err == nil {
 		t.Fatal("Expected error on DecodeSeed with bad prefix type")
 	}
-	if _, err := FromSeed(string(bseed)); err == nil {
+	if _, err := FromSeed(bseed); err == nil {
 		t.Fatal("Expected error on FromSeed with bad prefix type")
 	}
 
-	if _, err := FromPublicKey(string(bpkey)); err == nil {
+	if _, err := FromPublicKey(bpkey); err == nil {
 		t.Fatal("Expected error on FromPublicKey with bad checksum")
 	}
 	if _, err := FromPublicKey(seed); err == nil {
@@ -443,8 +442,53 @@ func TestFromRawSeed(t *testing.T) {
 		t.Fatalf("Expected non-nil error on FromRawSeed, received %v", err)
 	}
 	s2e, _ := user2.Seed()
-	if strings.Compare(se, s2e) != 0 {
+	if bytes.Compare(se, s2e) != 0 {
 		t.Fatalf("Expected the seeds to be the same, got %v vs %v\n", se, s2e)
+	}
+}
+
+func TestWipe(t *testing.T) {
+	user, err := CreateUser()
+	if err != nil {
+		t.Fatalf("Expected non-nil error on CreateUser, received %v", err)
+	}
+	pubKey, err := user.PublicKey()
+	if err != nil {
+		t.Fatalf("Received an error retrieving public key: %v", err)
+	}
+	seed := user.(*kp).seed
+	// Copy so we know the original
+	copy := append([]byte{}, seed...)
+	user.Wipe()
+	// Make sure new seed is nil
+	if wiped := user.(*kp).seed; wiped != nil {
+		t.Fatalf("Expected the seed to be nil, got %q", wiped)
+	}
+	// Make sure the original seed is not equal to the seed in memory.
+	if bytes.Compare(seed, copy) == 0 {
+		t.Fatalf("Expected the memory for the seed to be randomized")
+	}
+
+	// Now test public
+	user, err = FromPublicKey(pubKey)
+	if err != nil {
+		t.Fatalf("Received an error create KeyPair from PublicKey: %v", err)
+	}
+
+	edPub := user.(*pub).pub
+	// Copy so we know the original
+	copy = append([]byte{}, edPub...)
+
+	user.Wipe()
+
+	// First check pre was changed
+	if user.(*pub).pre != '0' {
+		t.Fatalf("Expected prefix to be changed")
+	}
+
+	// Make sure the original key is not equal to the one in memory.
+	if bytes.Compare(edPub, copy) == 0 {
+		t.Fatalf("Expected the memory for the pubKey to be randomized")
 	}
 }
 
