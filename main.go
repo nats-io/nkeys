@@ -86,7 +86,8 @@ func FromSeed(seed []byte) (KeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &kp{seed}, nil
+	copy := append([]byte{}, seed...)
+	return &kp{copy}, nil
 }
 
 // Create a KeyPair from the raw 32 byte seed for a given type.
