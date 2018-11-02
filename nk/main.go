@@ -14,6 +14,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base32"
 	"encoding/base64"
@@ -47,7 +48,6 @@ func main() {
 
 	var keyType = flag.String("gen", "", "Generate key for <type>, e.g. nk -gen user")
 	var pubout = flag.Bool("pubout", false, "Output public key")
-
 
 	var version = flag.Bool("v", false, "Show version")
 	var vanPre = flag.String("pre", "", "Attempt to generate public key given prefix, e.g. nk -gen user -pre derek")
@@ -115,7 +115,7 @@ func printPublicFromSeed(keyFile string) {
 		log.Fatal(err)
 	}
 
-	kp, err := nkeys.FromSeed(string(seed))
+	kp, err := nkeys.FromSeed(seed)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func sign(fname, keyFile string) {
 		log.Fatal(err)
 	}
 
-	kp, err := nkeys.FromSeed(string(seed))
+	kp, err := nkeys.FromSeed(seed)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		kp, err = nkeys.FromSeed(string(seed))
+		kp, err = nkeys.FromSeed(seed)
 	} else {
 		// Public Key
 		var public []byte
@@ -172,7 +172,7 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		kp, err = nkeys.FromPublicKey(string(public))
+		kp, err = nkeys.FromPublicKey(public)
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -257,7 +257,7 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 		fmt.Fprintf(os.Stderr, "\r\033[mcomputing\033[m %s ", string(spin))
 		kp := genKeyPair(pre, entropy)
 		pub, _ := kp.PublicKey()
-		if strings.HasPrefix(pub[1:], vanity) {
+		if bytes.HasPrefix(pub[1:], []byte(vanity)) {
 			fmt.Fprintf(os.Stderr, "\r")
 			return kp
 		}
