@@ -110,11 +110,7 @@ func main() {
 }
 
 func printPublicFromSeed(keyFile string) {
-	seed, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	seed := readKeyFile(keyFile)
 	kp, err := nkeys.FromSeed(seed)
 	if err != nil {
 		log.Fatal(err)
@@ -127,11 +123,7 @@ func sign(fname, keyFile string) {
 	if keyFile == "" {
 		log.Fatalf("Sign requires a seed/private key via -inkey <file>")
 	}
-	seed, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	seed := readKeyFile(keyFile)
 	kp, err := nkeys.FromSeed(seed)
 	if err != nil {
 		log.Fatal(err)
@@ -265,4 +257,41 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 	fmt.Fprintf(os.Stderr, "\r")
 	log.Fatalf("Failed to generate prefix after %d attempts", max)
 	return nil
+}
+
+func readKeyFile(filename string) []byte {
+	var key []byte
+	contents, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer wipeSlice(contents)
+
+	lines := bytes.Split(contents, []byte("\n"))
+	for _, line := range lines {
+		if nkeys.IsValidEncoding(line) {
+			key = make([]byte, len(line))
+			copy(key, line)
+			return key
+		}
+	}
+	if key == nil {
+		log.Fatalf("Could not find a valid key")
+	}
+	return key
+}
+
+func isValidLeadingByte(c byte) bool {
+	switch c {
+	case 'S', 'P', 'N', 'C', 'O', 'A', 'U':
+		return true
+	default:
+		return false
+	}
+}
+
+func wipeSlice(buf []byte) {
+	for i := range buf {
+		buf[i] = 'x'
+	}
 }

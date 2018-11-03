@@ -117,6 +117,12 @@ func EncodeSeed(public PrefixByte, src []byte) ([]byte, error) {
 	return buf, nil
 }
 
+// IsValidEncoding will tell you if the encoding is a valid key.
+func IsValidEncoding(src []byte) bool {
+	_, err := decode(src)
+	return err == nil
+}
+
 // decode will decode the base32 and check crc16 and the prefix for validity.
 func decode(src []byte) ([]byte, error) {
 	raw := make([]byte, b32Enc.EncodedLen(len(src)))
