@@ -281,15 +281,6 @@ func readKeyFile(filename string) []byte {
 	return key
 }
 
-func isValidLeadingByte(c byte) bool {
-	switch c {
-	case 'S', 'P', 'N', 'C', 'O', 'A', 'U':
-		return true
-	default:
-		return false
-	}
-}
-
 func wipeSlice(buf []byte) {
 	for i := range buf {
 		buf[i] = 'x'
