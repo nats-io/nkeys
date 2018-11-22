@@ -18,10 +18,19 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
+	"regexp"
 	"testing"
 
 	"golang.org/x/crypto/ed25519"
 )
+
+func TestVersion(t *testing.T) {
+	// Semantic versioning
+	verRe := regexp.MustCompile(`\d+.\d+.\d+(-\S+)?`)
+	if !verRe.MatchString(Version) {
+		t.Fatalf("Version not compatible with semantic versioning: %q", Version)
+	}
+}
 
 func TestEncode(t *testing.T) {
 	var rawKey [32]byte
@@ -247,6 +256,46 @@ func TestServer(t *testing.T) {
 	}
 }
 
+func TestPrefixByte(t *testing.T) {
+	user, _ := CreateUser()
+	pub, _ := user.PublicKey()
+	if pre := Prefix(pub); pre != PrefixByteUser {
+		t.Fatalf("Expected %s, got %s\n", PrefixByteUser, pre)
+	}
+	seed, _ := user.Seed()
+	if pre := Prefix(string(seed)); pre != PrefixByteSeed {
+		t.Fatalf("Expected %s, got %s\n", PrefixByteSeed, pre)
+	}
+	if pre := Prefix("SEED"); pre != PrefixByteUknown {
+		t.Fatalf("Expected %s, got %s\n", PrefixByteUknown, pre)
+	}
+	account, _ := CreateAccount()
+	pub, _ = account.PublicKey()
+	if pre := Prefix(pub); pre != PrefixByteAccount {
+		t.Fatalf("Expected %s, got %s\n", PrefixByteAccount, pre)
+	}
+}
+
+func TestIsValidPublic(t *testing.T) {
+	user, _ := CreateUser()
+	pub, _ := user.PublicKey()
+	if !IsValidPublicKey(pub) {
+		t.Fatalf("Expected pub to be a valid public key")
+	}
+	seed, _ := user.Seed()
+	if IsValidPublicKey(string(seed)) {
+		t.Fatalf("Expected seed to not be a valid public key")
+	}
+	if IsValidPublicKey("BAD") {
+		t.Fatalf("Expected BAD to not be a valid public key")
+	}
+	account, _ := CreateAccount()
+	pub, _ = account.PublicKey()
+	if !IsValidPublicKey(pub) {
+		t.Fatalf("Expected pub to be a valid public key")
+	}
+}
+
 func TestFromPublic(t *testing.T) {
 	// Create a User
 	user, err := CreateUser()
@@ -262,8 +311,8 @@ func TestFromPublic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error retrieving public key from user: %v", err)
 	}
-	publicKeyClone, err := user.PublicKey()
-	if bytes.Compare(publicKeyClone, publicKey) != 0 {
+	publicKeyClone, _ := user.PublicKey()
+	if publicKeyClone != publicKey {
 		t.Fatalf("Expected the public keys to match: %q vs %q", publicKeyClone, publicKey)
 	}
 
@@ -277,7 +326,7 @@ func TestFromPublic(t *testing.T) {
 		t.Fatalf("Error retrieving public key from public user: %v", err)
 	}
 	// Make sure they match
-	if bytes.Compare(publicKey2, publicKey) != 0 {
+	if publicKey2 != publicKey {
 		t.Fatalf("Expected the public keys to match: %q vs %q", publicKey2, publicKey)
 	}
 
@@ -359,7 +408,7 @@ func TestKeyPairFailures(t *testing.T) {
 		t.Fatal("Expected an error with insufficient rand")
 	}
 
-	if _, err := createPair(PrefixBytePrivate); err == nil {
+	if _, err := CreatePair(PrefixBytePrivate); err == nil {
 		t.Fatal("Expected an error with non-public prefix")
 	}
 	kpbad := &kp{[]byte("SEEDBAD")}
@@ -395,10 +444,10 @@ func TestBadDecode(t *testing.T) {
 		t.Fatal("Expected error on decode with bad checksum")
 	}
 
-	if _, err := Decode(PrefixByteUser, pkey); err == nil {
+	if _, err := Decode(PrefixByteUser, []byte(pkey)); err == nil {
 		t.Fatal("Expected error on Decode with mismatched prefix")
 	}
-	if _, err := Decode(PrefixByte(3<<3), pkey); err == nil {
+	if _, err := Decode(PrefixByte(3<<3), []byte(pkey)); err == nil {
 		t.Fatal("Expected error on Decode with invalid prefix")
 	}
 	if _, err := Decode(PrefixByteAccount, bpkey); err == nil {
@@ -408,7 +457,7 @@ func TestBadDecode(t *testing.T) {
 	if _, _, err := DecodeSeed(bpkey); err == nil {
 		t.Fatal("Expected error on DecodeSeed with bad checksum")
 	}
-	if _, _, err := DecodeSeed(pkey); err == nil {
+	if _, _, err := DecodeSeed([]byte(pkey)); err == nil {
 		t.Fatal("Expected error on DecodeSeed with bad seed type")
 	}
 
@@ -422,10 +471,10 @@ func TestBadDecode(t *testing.T) {
 		t.Fatal("Expected error on FromSeed with bad prefix type")
 	}
 
-	if _, err := FromPublicKey(bpkey); err == nil {
+	if _, err := FromPublicKey(string(bpkey)); err == nil {
 		t.Fatal("Expected error on FromPublicKey with bad checksum")
 	}
-	if _, err := FromPublicKey(seed); err == nil {
+	if _, err := FromPublicKey(string(seed)); err == nil {
 		t.Fatal("Expected error on FromPublicKey with bad checksum")
 	}
 }
@@ -442,7 +491,7 @@ func TestFromRawSeed(t *testing.T) {
 		t.Fatalf("Expected non-nil error on FromRawSeed, received %v", err)
 	}
 	s2e, _ := user2.Seed()
-	if bytes.Compare(se, s2e) != 0 {
+	if !bytes.Equal(se, s2e) {
 		t.Fatalf("Expected the seeds to be the same, got %v vs %v\n", se, s2e)
 	}
 }
@@ -465,7 +514,7 @@ func TestWipe(t *testing.T) {
 		t.Fatalf("Expected the seed to be nil, got %q", wiped)
 	}
 	// Make sure the original seed is not equal to the seed in memory.
-	if bytes.Compare(seed, copy) == 0 {
+	if bytes.Equal(seed, copy) {
 		t.Fatalf("Expected the memory for the seed to be randomized")
 	}
 
@@ -487,7 +536,7 @@ func TestWipe(t *testing.T) {
 	}
 
 	// Make sure the original key is not equal to the one in memory.
-	if bytes.Compare(edPub, copy) == 0 {
+	if bytes.Equal(edPub, copy) {
 		t.Fatalf("Expected the memory for the pubKey to be randomized")
 	}
 }
