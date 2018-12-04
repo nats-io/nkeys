@@ -17,10 +17,10 @@ script:
 - go test -v -covermode=count -coverprofile=coverage.out
 - $HOME/gopath/bin/goveralls -coverprofile coverage.out -service travis-ci
 
-deploy:
-- provider: script
-  skip_cleanup: true
-  script: curl -sL http://git.io/goreleaser | bash
-  on:
-    tags: true
-    condition: $TRAVIS_OS_NAME = linux
+#deploy:
+#- provider: script
+#  skip_cleanup: true
+#  script: curl -sL http://git.io/goreleaser | bash
+#  on:
+#    tags: true
+#    condition: $TRAVIS_OS_NAME = linux
