@@ -1,4 +1,4 @@
-// Copyright 2018 The NATS Authors
+// Copyright 2018-2019 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/nats-io/nkeys"
@@ -33,7 +34,7 @@ import (
 var Version string
 
 func usage() {
-	log.Fatalf("Usage: nk [-v] [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-sigfile file] [-pubout] [-e entropy]\n")
+	log.Fatalf("Usage: nk [-v] [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-sigfile file] [-pubout] [-e entropy] [-pre vanity]\n")
 }
 
 func main() {
@@ -51,7 +52,7 @@ func main() {
 
 	var version = flag.Bool("v", false, "Show version")
 	var vanPre = flag.String("pre", "", "Attempt to generate public key given prefix, e.g. nk -gen user -pre derek")
-	var vanMax = flag.Int("maxpre", 1000000, "Maximum attempts at generating the correct key prefix")
+	var vanMax = flag.Int("maxpre", 10000000, "Maximum attempts at generating the correct key prefix")
 
 	log.SetFlags(0)
 	log.SetOutput(os.Stdout)
@@ -244,16 +245,42 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 		log.Fatalf("Can not generate base32 encoded strings to match '%s'", vanity)
 	}
 
+	ncpu := runtime.NumCPU()
+
+	// Work channel
+	wch := make(chan struct{})
+	defer close(wch)
+
+	// Found solution
+	found := make(chan nkeys.KeyPair)
+
+	// Start NumCPU go routines.
+	for i := 0; i < ncpu; i++ {
+		go func() {
+			for range wch {
+				kp := genKeyPair(pre, entropy)
+				pub, _ := kp.PublicKey()
+				if strings.HasPrefix(pub[1:], vanity) {
+					found <- kp
+					return
+				}
+			}
+		}()
+	}
+
+	// Run through max iterations.
 	for i := 0; i < max; i++ {
 		spin := spinners[i%len(spinners)]
 		fmt.Fprintf(os.Stderr, "\r\033[mcomputing\033[m %s ", string(spin))
-		kp := genKeyPair(pre, entropy)
-		pub, _ := kp.PublicKey()
-		if strings.HasPrefix(pub[1:], vanity) {
+		wch <- struct{}{}
+		select {
+		case kp := <-found:
 			fmt.Fprintf(os.Stderr, "\r")
 			return kp
+		default:
 		}
 	}
+
 	fmt.Fprintf(os.Stderr, "\r")
 	log.Fatalf("Failed to generate prefix after %d attempts", max)
 	return nil
