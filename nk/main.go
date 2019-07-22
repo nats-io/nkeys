@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"github.com/nats-io/nkeys"
 	"io"
 	"io/ioutil"
 	"log"
@@ -27,8 +28,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-
-	"github.com/nats-io/nkeys"
+	"time"
 )
 
 // this will be set during compilation when a release is made on tools
@@ -238,6 +238,7 @@ var b32Enc = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 	spinners := []rune(`⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`)
+	steps := len(spinners)
 	pre := preForType(keyType)
 	vanity = strings.ToUpper(vanity)
 	// Check to make sure we can base32 into it by trying to decode it.
@@ -246,34 +247,77 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 		log.Fatalf("Can not generate base32 encoded strings to match '%s'", vanity)
 	}
 
+	var mu sync.Mutex
 	var found nkeys.KeyPair
-	var wg sync.WaitGroup
+	var done bool
+
+	var spinner sync.WaitGroup
+	go func() {
+		spinner.Add(1)
+		i := 0
+		for {
+			i++
+			if i > steps {
+				i = 0
+			}
+			spin := spinners[i%steps]
+			mu.Lock()
+			if done {
+				mu.Unlock()
+				break
+			}
+			fmt.Fprintf(os.Stderr, "\r\033[mcomputing\033[m %s ", string(spin))
+			mu.Unlock()
+			time.Sleep(50 * time.Millisecond)
+		}
+		fmt.Fprintf(os.Stderr, "\r")
+		spinner.Done()
+	}()
+
+	var workers sync.WaitGroup
 	cpu := runtime.NumCPU()
-	wg.Add(cpu)
+	workers.Add(cpu)
 	for i := 0; i < cpu; i++ {
+		tries := max / cpu
+		extra := max % cpu
+		if extra > 0 && extra >= i-1 {
+			tries += 1
+		}
+
 		go func() {
-			for i := 0; i < max; i++ {
+			for i := 0; i < tries; i++ {
+				// are we done
+				mu.Lock()
 				if found != nil {
-					wg.Done()
-					return
+					// unlock fast path
+					mu.Unlock()
+					break
 				}
-				spin := spinners[i%len(spinners)]
-				fmt.Fprintf(os.Stderr, "\r\033[mcomputing\033[m %s ", string(spin))
+				mu.Unlock()
+
 				kp := genKeyPair(pre, entropy)
 				pub, _ := kp.PublicKey()
 				if strings.HasPrefix(pub[1:], vanity) {
-					fmt.Fprintf(os.Stderr, "\r")
+					// lock again to signal the found key
+					mu.Lock()
 					found = kp
-					wg.Done()
-					return
+					mu.Unlock()
+					break
 				}
 			}
+			workers.Done()
 		}()
 	}
-	wg.Wait()
+	workers.Wait()
+
+	// stop the spinner
+	mu.Lock()
+	done = true
+	mu.Unlock()
+	// wait for any console i/o
+	spinner.Wait()
 
 	if found == nil {
-		fmt.Fprintf(os.Stderr, "\r")
 		log.Fatalf("Failed to generate prefix after %d attempts", max)
 	}
 	return found
