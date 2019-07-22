@@ -19,7 +19,7 @@ import (
 	"errors"
 )
 
-// Version
+// Version is our current version
 const Version = "0.1.0"
 
 // Errors
@@ -93,7 +93,7 @@ func FromSeed(seed []byte) (KeyPair, error) {
 	return &kp{copy}, nil
 }
 
-// Create a KeyPair from the raw 32 byte seed for a given type.
+// FromRawSeed will create a KeyPair from the raw 32 byte seed for a given type.
 func FromRawSeed(prefix PrefixByte, rawSeed []byte) (KeyPair, error) {
 	seed, err := EncodeSeed(prefix, rawSeed)
 	if err != nil {

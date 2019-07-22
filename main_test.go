@@ -266,8 +266,8 @@ func TestPrefixByte(t *testing.T) {
 	if pre := Prefix(string(seed)); pre != PrefixByteSeed {
 		t.Fatalf("Expected %s, got %s\n", PrefixByteSeed, pre)
 	}
-	if pre := Prefix("SEED"); pre != PrefixByteUknown {
-		t.Fatalf("Expected %s, got %s\n", PrefixByteUknown, pre)
+	if pre := Prefix("SEED"); pre != PrefixByteUnknown {
+		t.Fatalf("Expected %s, got %s\n", PrefixByteUnknown, pre)
 	}
 	account, _ := CreateAccount()
 	pub, _ = account.PublicKey()
