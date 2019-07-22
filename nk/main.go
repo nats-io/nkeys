@@ -24,7 +24,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/nats-io/nkeys"
 )
@@ -244,19 +246,37 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 		log.Fatalf("Can not generate base32 encoded strings to match '%s'", vanity)
 	}
 
-	for i := 0; i < max; i++ {
-		spin := spinners[i%len(spinners)]
-		fmt.Fprintf(os.Stderr, "\r\033[mcomputing\033[m %s ", string(spin))
-		kp := genKeyPair(pre, entropy)
-		pub, _ := kp.PublicKey()
-		if strings.HasPrefix(pub[1:], vanity) {
-			fmt.Fprintf(os.Stderr, "\r")
-			return kp
-		}
+	var found nkeys.KeyPair
+	var wg sync.WaitGroup
+	cpu := runtime.NumCPU()
+	wg.Add(cpu)
+	for i:=0; i < cpu; i++ {
+		go func() {
+			for i := 0; i < max; i++ {
+				if found != nil {
+					wg.Done()
+					return
+				}
+				spin := spinners[i%len(spinners)]
+				fmt.Fprintf(os.Stderr, "\r\033[mcomputing\033[m %s ", string(spin))
+				kp := genKeyPair(pre, entropy)
+				pub, _ := kp.PublicKey()
+				if strings.HasPrefix(pub[1:], vanity) {
+					fmt.Fprintf(os.Stderr, "\r")
+					found = kp
+					wg.Done()
+					return
+				}
+			}
+		}()
 	}
-	fmt.Fprintf(os.Stderr, "\r")
-	log.Fatalf("Failed to generate prefix after %d attempts", max)
-	return nil
+	wg.Wait()
+
+	if found == nil {
+		fmt.Fprintf(os.Stderr, "\r")
+		log.Fatalf("Failed to generate prefix after %d attempts", max)
+	}
+	return found
 }
 
 func readKeyFile(filename string) []byte {
