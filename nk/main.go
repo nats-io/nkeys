@@ -250,7 +250,7 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 	var wg sync.WaitGroup
 	cpu := runtime.NumCPU()
 	wg.Add(cpu)
-	for i:=0; i < cpu; i++ {
+	for i := 0; i < cpu; i++ {
 		go func() {
 			for i := 0; i < max; i++ {
 				if found != nil {
