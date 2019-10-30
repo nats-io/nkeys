@@ -619,7 +619,6 @@ func BenchmarkPublicVerify(b *testing.B) {
 	}
 }
 
-
 func TestValidateKeyPairRole(t *testing.T) {
 	okp, err := CreateOperator()
 	if err != nil {

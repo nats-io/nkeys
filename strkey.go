@@ -289,7 +289,6 @@ func (p PrefixByte) String() string {
 	return "unknown"
 }
 
-
 // CompatibleKeyPair returns an error if the KeyPair doesn't match expected PrefixByte(s)
 func CompatibleKeyPair(kp KeyPair, expected ...PrefixByte) error {
 	pk, err := kp.PublicKey()
