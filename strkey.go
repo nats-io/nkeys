@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"encoding/base32"
 	"encoding/binary"
-
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -288,4 +287,21 @@ func (p PrefixByte) String() string {
 		return "private"
 	}
 	return "unknown"
+}
+
+
+// CompatibleKeyPair returns an error if the KeyPair doesn't match expected PrefixByte(s)
+func CompatibleKeyPair(kp KeyPair, expected ...PrefixByte) error {
+	pk, err := kp.PublicKey()
+	if err != nil {
+		return err
+	}
+	pkType := Prefix(pk)
+	for _, k := range expected {
+		if pkType == k {
+			return nil
+		}
+	}
+
+	return ErrIncompatibleKey
 }
