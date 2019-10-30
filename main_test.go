@@ -618,3 +618,60 @@ func BenchmarkPublicVerify(b *testing.B) {
 		}
 	}
 }
+
+
+func TestValidateKeyPairRole(t *testing.T) {
+	okp, err := CreateOperator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	akp, err := CreateAccount()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ukp, err := CreateUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ckp, err := CreateCluster()
+	if err != nil {
+		t.Fatal(err)
+	}
+	skp, err := CreateServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var keyroles = []struct {
+		kp    KeyPair
+		roles []PrefixByte
+		ok    bool
+		name  string
+	}{
+		{kp: okp, name: "want operator", roles: []PrefixByte{PrefixByteOperator}, ok: true},
+		{kp: akp, name: "want account", roles: []PrefixByte{PrefixByteAccount}, ok: true},
+		{kp: ukp, name: "want user", roles: []PrefixByte{PrefixByteUser}, ok: true},
+		{kp: ckp, name: "want cluster", roles: []PrefixByte{PrefixByteCluster}, ok: true},
+		{kp: skp, name: "want server", roles: []PrefixByte{PrefixByteServer}, ok: true},
+
+		{kp: okp, name: "want account or operator", roles: []PrefixByte{PrefixByteOperator, PrefixByteAccount}, ok: true},
+		{kp: akp, name: "want account or operator", roles: []PrefixByte{PrefixByteOperator, PrefixByteAccount}, ok: true},
+
+		{kp: akp, name: "want operator got account", roles: []PrefixByte{PrefixByteOperator}, ok: false},
+		{kp: ukp, name: "want account or operator got user", roles: []PrefixByte{PrefixByteOperator, PrefixByteAccount}, ok: false},
+	}
+
+	for _, e := range keyroles {
+		err := CompatibleKeyPair(e.kp, e.roles...)
+		if err == nil && !e.ok {
+			t.Fatalf("test %q should have failed but didn't", e.name)
+		}
+		if err != nil && e.ok {
+			t.Fatalf("test %q should have not failed: %v", e.name, err)
+
+		}
+		if err != nil && !e.ok && err != ErrIncompatibleKey {
+			t.Fatalf("unexpected error type for %q: %v", e.name, err)
+		}
+	}
+}

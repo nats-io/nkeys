@@ -20,7 +20,7 @@ import (
 )
 
 // Version is our current version
-const Version = "0.1.0"
+const Version = "0.1.2"
 
 // Errors
 var (
@@ -33,6 +33,7 @@ var (
 	ErrInvalidSignature  = errors.New("nkeys: signature verification failed")
 	ErrCannotSign        = errors.New("nkeys: can not sign, no private key available")
 	ErrPublicKeyOnly     = errors.New("nkeys: no seed or private key available")
+	ErrIncompatibleKey   = errors.New("nkeys: incompatible key")
 )
 
 // KeyPair provides the central interface to nkeys.
