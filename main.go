@@ -15,26 +15,8 @@
 // and performs signing and verification.
 package nkeys
 
-import (
-	"errors"
-)
-
 // Version is our current version
 const Version = "0.3.0"
-
-// Errors
-var (
-	ErrInvalidPrefixByte = errors.New("nkeys: invalid prefix byte")
-	ErrInvalidKey        = errors.New("nkeys: invalid key")
-	ErrInvalidPublicKey  = errors.New("nkeys: invalid public key")
-	ErrInvalidSeedLen    = errors.New("nkeys: invalid seed length")
-	ErrInvalidSeed       = errors.New("nkeys: invalid seed")
-	ErrInvalidEncoding   = errors.New("nkeys: invalid encoded key")
-	ErrInvalidSignature  = errors.New("nkeys: signature verification failed")
-	ErrCannotSign        = errors.New("nkeys: can not sign, no private key available")
-	ErrPublicKeyOnly     = errors.New("nkeys: no seed or private key available")
-	ErrIncompatibleKey   = errors.New("nkeys: incompatible key")
-)
 
 // KeyPair provides the central interface to nkeys.
 type KeyPair interface {
