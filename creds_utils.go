@@ -2,7 +2,6 @@ package nkeys
 
 import (
 	"bytes"
-	"errors"
 	"regexp"
 )
 
@@ -42,12 +41,12 @@ func ParseDecoratedNKey(contents []byte) (KeyPair, error) {
 		}
 	}
 	if seed == nil {
-		return nil, errors.New("no nkey seed found")
+		return nil, ErrNoSeedFound
 	}
 	if !bytes.HasPrefix(seed, []byte("SO")) &&
 		!bytes.HasPrefix(seed, []byte("SA")) &&
 		!bytes.HasPrefix(seed, []byte("SU")) {
-		return nil, errors.New("doesn't contain a seed nkey")
+		return nil, ErrInvalidNkeySeed
 	}
 	kp, err := FromSeed(seed)
 	if err != nil {
@@ -68,7 +67,7 @@ func ParseDecoratedUserNKey(contents []byte) (KeyPair, error) {
 		return nil, err
 	}
 	if !bytes.HasPrefix(seed, []byte("SU")) {
-		return nil, errors.New("doesn't contain an user seed nkey")
+		return nil, ErrInvalidUserSeed
 	}
 	kp, err := FromSeed(seed)
 	if err != nil {
