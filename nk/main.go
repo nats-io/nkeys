@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The NATS Authors
+// Copyright 2018-2022 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
@@ -130,7 +129,7 @@ func sign(fname, keyFile string) {
 		log.Fatal(err)
 	}
 
-	content, err := ioutil.ReadFile(fname)
+	content, err := os.ReadFile(fname)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -153,7 +152,7 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 	var kp nkeys.KeyPair
 	if keyFile != "" {
 		var seed []byte
-		seed, err = ioutil.ReadFile(keyFile)
+		seed, err = os.ReadFile(keyFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -161,7 +160,7 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 	} else {
 		// Public Key
 		var public []byte
-		public, err = ioutil.ReadFile(pubFile)
+		public, err = os.ReadFile(pubFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -171,12 +170,12 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 		log.Fatal(err)
 	}
 
-	content, err := ioutil.ReadFile(fname)
+	content, err := os.ReadFile(fname)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	sigEnc, err := ioutil.ReadFile(sigFile)
+	sigEnc, err := os.ReadFile(sigFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -288,7 +287,7 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 
 func readKeyFile(filename string) []byte {
 	var key []byte
-	contents, err := ioutil.ReadFile(filename)
+	contents, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
