@@ -20,7 +20,6 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"runtime"
@@ -32,8 +31,27 @@ import (
 // this will be set during compilation when a release is made on tools
 var Version string
 
+const defaultVanMax = 10_000_000
+
 func usage() {
-	log.Fatalf("Usage: nk [-v] [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-sigfile file] [-pubout] [-e entropy] [-pre vanity]\n")
+	log.Fatalf(`Usage: nk [options]
+    -v                    Show version
+    -gen <type>           Generate key for [user|account|server|cluster|operator|curve|x25519]
+    -sign <file>          Sign <file> with -inkey <keyfile>
+    -verify <file>        Verfify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>
+    -inkey <file>         Input key file (seed/private key)
+    -pubin <file>         Public key file
+    -sigfile <file>       Signature file
+    -pubout               Output public key
+    -e                    Entropy file, e.g. /dev/urandom
+    -pre <vanity>         Attempt to generate public key given prefix, e.g. nk -gen user -pre derek
+    -maxpre <N>           Maximum attempts at generating the correct key prefix, default is 10,000,000
+`)
+}
+
+type KeyPair interface {
+	Seed() ([]byte, error)
+	PublicKey() (string, error)
 }
 
 func main() {
@@ -41,7 +59,7 @@ func main() {
 	var keyFile = flag.String("inkey", "", "Input key file (seed/private key)")
 	var pubFile = flag.String("pubin", "", "Public key file")
 
-	var signFile = flag.String("sign", "", "Sign <file> with -inkey <key>")
+	var signFile = flag.String("sign", "", "Sign <file> with -inkey <keyfile>")
 	var sigFile = flag.String("sigfile", "", "Signature file")
 
 	var verifyFile = flag.String("verify", "", "Verfify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>")
@@ -51,7 +69,7 @@ func main() {
 
 	var version = flag.Bool("v", false, "Show version")
 	var vanPre = flag.String("pre", "", "Attempt to generate public key given prefix, e.g. nk -gen user -pre derek")
-	var vanMax = flag.Int("maxpre", 10000000, "Maximum attempts at generating the correct key prefix")
+	var vanMax = flag.Int("maxpre", defaultVanMax, "Maximum attempts at generating the correct key prefix")
 
 	log.SetFlags(0)
 	log.SetOutput(os.Stdout)
@@ -65,7 +83,7 @@ func main() {
 
 	// Create Key
 	if *keyType != "" {
-		var kp nkeys.KeyPair
+		var kp KeyPair
 		// Check to see if we are trying to do a vanity public key.
 		if *vanPre != "" {
 			kp = createVanityKey(*keyType, *vanPre, *entropy, *vanMax)
@@ -82,6 +100,7 @@ func main() {
 			log.Printf("%s", pub)
 		}
 		return
+
 	}
 
 	if *entropy != "" {
@@ -202,13 +221,16 @@ func preForType(keyType string) nkeys.PrefixByte {
 		return nkeys.PrefixByteCluster
 	case "operator":
 		return nkeys.PrefixByteOperator
+	case "curve", "x25519":
+		return nkeys.PrefixByteCurve
+
 	default:
-		log.Fatalf("Usage: nk -gen [user|account|server|cluster|operator]\n")
+		log.Fatalf("Usage: nk -gen [user|account|server|cluster|operator|curve|x25519]\n")
 	}
 	return nkeys.PrefixByte(0)
 }
 
-func genKeyPair(pre nkeys.PrefixByte, entropy string) nkeys.KeyPair {
+func genKeyPair(pre nkeys.PrefixByte, entropy string) KeyPair {
 	// See if we override entropy.
 	ef := rand.Reader
 	if entropy != "" {
@@ -219,22 +241,26 @@ func genKeyPair(pre nkeys.PrefixByte, entropy string) nkeys.KeyPair {
 		ef = r
 	}
 
-	// Create raw seed from source or random.
-	var rawSeed [32]byte
-	_, err := io.ReadFull(ef, rawSeed[:]) // Or some other random source.
-	if err != nil {
-		log.Fatalf("Error reading from %s: %v", ef, err)
-	}
-	kp, err := nkeys.FromRawSeed(pre, rawSeed[:])
-	if err != nil {
-		log.Fatalf("Error creating %c: %v", pre, err)
+	var kp KeyPair
+	var err error
+
+	if pre == nkeys.PrefixByteCurve {
+		kp, err = nkeys.CreateCurveKeysWithRand(ef)
+		if err != nil {
+			log.Fatalf("Error creating %c: %v", pre, err)
+		}
+	} else {
+		kp, err = nkeys.CreatePairWithRand(pre, ef)
+		if err != nil {
+			log.Fatalf("Error creating %c: %v", pre, err)
+		}
 	}
 	return kp
 }
 
 var b32Enc = base32.StdEncoding.WithPadding(base32.NoPadding)
 
-func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
+func createVanityKey(keyType, vanity, entropy string, max int) KeyPair {
 	spinners := []rune(`⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`)
 	pre := preForType(keyType)
 	vanity = strings.ToUpper(vanity)
@@ -251,7 +277,7 @@ func createVanityKey(keyType, vanity, entropy string, max int) nkeys.KeyPair {
 	defer close(wch)
 
 	// Found solution
-	found := make(chan nkeys.KeyPair)
+	found := make(chan KeyPair)
 
 	// Start NumCPU go routines.
 	for i := 0; i < ncpu; i++ {

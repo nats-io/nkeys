@@ -1,4 +1,4 @@
-// Copyright 2018 The NATS Authors
+// Copyright 2018-2022 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -26,11 +26,22 @@ type kp struct {
 	seed []byte
 }
 
-// CreatePair will create a KeyPair based on the rand entropy and a type/prefix byte. rand can be nil.
-func CreatePair(prefix PrefixByte) (KeyPair, error) {
-	var rawSeed [32]byte
+// All seeds are 32 bytes long.
+const seedLen = 32
 
-	_, err := io.ReadFull(rand.Reader, rawSeed[:])
+// CreatePair will create a KeyPair based on the rand entropy and a type/prefix byte.
+func CreatePair(prefix PrefixByte) (KeyPair, error) {
+	return CreatePairWithRand(prefix, rand.Reader)
+}
+
+// CreatePair will create a KeyPair based on the rand reader and a type/prefix byte. rand can be nil.
+func CreatePairWithRand(prefix PrefixByte, rr io.Reader) (KeyPair, error) {
+	if rr == nil {
+		rr = rand.Reader
+	}
+	var rawSeed [seedLen]byte
+
+	_, err := io.ReadFull(rr, rawSeed[:])
 	if err != nil {
 		return nil, err
 	}
