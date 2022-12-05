@@ -18,7 +18,7 @@ func Test_ParseDecoratedJWTBad(t *testing.T) {
 func Test_ParseDecoratedSeedBad(t *testing.T) {
 	if _, err := ParseDecoratedNKey([]byte("foo")); err == nil {
 		t.Fatal("Expected error")
-	} else if err.Error() != "no nkey seed found" {
+	} else if err.Error() != "nkeys: no nkey seed found" {
 		t.Fatal(err)
 	}
 }

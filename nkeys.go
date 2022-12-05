@@ -13,10 +13,11 @@
 
 // Package nkeys is an Ed25519 based public-key signature system that simplifies keys and seeds
 // and performs signing and verification.
+// It also supports encryption via x25519 keys and is compatible with https://pkg.go.dev/golang.org/x/crypto/nacl/box.
 package nkeys
 
 // Version is our current version
-const Version = "0.3.0"
+const Version = "0.4.0-beta"
 
 // KeyPair provides the central interface to nkeys.
 type KeyPair interface {
