@@ -64,3 +64,14 @@ func (p *pub) Wipe() {
 	p.pre = '0'
 	io.ReadFull(rand.Reader, p.pub)
 }
+
+func (p *pub) Seal(input []byte, recipient string) ([]byte, error) {
+	return nil, ErrCannotSeal
+}
+func (p *pub) SealWithRand(input []byte, _recipient string, rr io.Reader) ([]byte, error) {
+	return nil, ErrCannotSeal
+}
+
+func (p *pub) Open(input []byte, sender string) ([]byte, error) {
+	return nil, ErrCannotOpen
+}
