@@ -692,3 +692,40 @@ func TestValidateKeyPairRole(t *testing.T) {
 		}
 	}
 }
+
+func testSealOpen(t *testing.T, prefixByte PrefixByte) {
+	kp, err := CreatePair(prefixByte)
+	if err != nil {
+		t.Fatalf("Failed to create pair for %v", prefixByte)
+	}
+	if kp == nil {
+		t.Fatalf("Failed to create pair for %v - nil keypair", prefixByte)
+	}
+	_, err = kp.Open([]byte("hello"), "ME")
+	if err == nil {
+		t.Fatalf("Expected Open to fail for %v", prefixByte)
+	}
+	if err != ErrInvalidNKeyOperation {
+		t.Fatalf("Expected Open to fail for %v with %v: %v", prefixByte, ErrInvalidNKeyOperation, err)
+	}
+	_, err = kp.Seal([]byte("hello"), "ME")
+	if err == nil {
+		t.Fatalf("Expected Seal to fail for %v", prefixByte)
+	}
+	if err != ErrInvalidNKeyOperation {
+		t.Fatalf("Expected Seal to fail for %v with %v: %v", prefixByte, ErrInvalidNKeyOperation, err)
+	}
+	_, err = kp.SealWithRand([]byte("hello"), "ME", nil)
+	if err == nil {
+		t.Fatalf("Expected SealWithRand to fail for %v", prefixByte)
+	}
+	if err != ErrInvalidNKeyOperation {
+		t.Fatalf("Expected SealWithRand to fail for %v with %v: %v", prefixByte, ErrInvalidNKeyOperation, err)
+	}
+}
+
+func TestSealOpen(t *testing.T) {
+	testSealOpen(t, PrefixByteOperator)
+	testSealOpen(t, PrefixByteAccount)
+	testSealOpen(t, PrefixByteUser)
+}

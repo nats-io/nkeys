@@ -19,15 +19,7 @@ import (
 	"testing"
 )
 
-func TestCurve(t *testing.T) {
-	kp, err := CreateCurveKeys()
-	if err != nil {
-		t.Fatalf("Expected non-nil error on CreateCurveKeys, received %v", err)
-	}
-	if kp == nil {
-		t.Fatal("Expected a non-nil curve key pair")
-	}
-
+func testCurve(t *testing.T, kp KeyPair) {
 	// Check seed
 	seed, err := kp.Seed()
 	if err != nil {
@@ -81,6 +73,28 @@ func TestCurve(t *testing.T) {
 	}
 }
 
+func TestCurveFromCreateCurveKeys(t *testing.T) {
+	kp, err := CreateCurveKeys()
+	if err != nil {
+		t.Fatalf("Expected nil error on CreateCurveKeys, received %v", err)
+	}
+	if kp == nil {
+		t.Fatal("Expected a non-nil curve key pair")
+	}
+	testCurve(t, kp)
+}
+
+func TestCurveFromCreatePair(t *testing.T) {
+	kp, err := CreatePair(PrefixByteCurve)
+	if err != nil {
+		t.Fatalf("Expected nil error on CreatePair, received %v", err)
+	}
+	if kp == nil {
+		t.Fatal("Expected a non-nil curve key pair")
+	}
+	testCurve(t, kp)
+}
+
 func TestCurveFromSeed(t *testing.T) {
 	kp, _ := CreateCurveKeys()
 	seed, _ := kp.Seed()
@@ -90,6 +104,53 @@ func TestCurveFromSeed(t *testing.T) {
 		t.Fatalf("Unexpected error deriving curve keypair: %v", err)
 	}
 	if !reflect.DeepEqual(kp.(*ckp), nkp.(*ckp)) {
-		t.Fatalf("Expected the curve pairs to be equal")
+		t.Fatal("Expected the curve pairs to be equal")
+	}
+	testCurve(t, nkp)
+}
+
+func TestCurveFromKeyPair(t *testing.T) {
+	kp, _ := CreatePair(PrefixByteCurve)
+	_, err := kp.Sign([]byte("hello"))
+	if err == nil {
+		t.Fatal("Expected sign to fail as it non supported operation")
+	}
+	if err != ErrInvalidCurveKeyOperation {
+		t.Fatalf("Expected %v but got %v", ErrInvalidCurveKeyOperation, err)
+	}
+	err = kp.Verify([]byte("hello"), []byte("bad"))
+	if err == nil {
+		t.Fatal("Expected verify to fail as it is unsupported operation")
+	}
+	if err != ErrInvalidCurveKeyOperation {
+		t.Fatalf("Expected %v but got %v", ErrInvalidCurveKeyOperation, err)
+	}
+}
+
+func TestCurvePublic(t *testing.T) {
+	kp, _ := CreatePair(PrefixByteCurve)
+	_, err := kp.Sign([]byte("hello"))
+	if err == nil {
+		t.Fatal("Expected sign to fail as it non supported operation")
+	}
+	pk, err := kp.PublicKey()
+	if err != nil {
+		t.Fatalf("Unexpected public key error: %v", err)
+	}
+	pub, err := FromPublicKey(pk)
+	if err != nil {
+		t.Fatalf("Unexpected error when creating public key: %v", err)
+	}
+	_, err = pub.Open([]byte("hello"), "bad")
+	if err != ErrCannotOpen {
+		t.Fatalf("Expected %v but got %v", ErrCannotOpen, err)
+	}
+	_, err = pub.Seal([]byte("hello"), "bad")
+	if err != ErrCannotSeal {
+		t.Fatalf("Expected %v but got %v", ErrCannotSeal, err)
+	}
+	_, err = pub.SealWithRand([]byte("hello"), "bad", nil)
+	if err != ErrCannotSeal {
+		t.Fatalf("Expected %v but got %v", ErrCannotSeal, err)
 	}
 }
