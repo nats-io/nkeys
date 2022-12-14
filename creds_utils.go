@@ -3,6 +3,7 @@ package nkeys
 import (
 	"bytes"
 	"regexp"
+	"strings"
 )
 
 var userConfigRE = regexp.MustCompile(`\s*(?:(?:[-]{3,}.*[-]{3,}\r?\n)([\w\-.=]+)(?:\r?\n[-]{3,}.*[-]{3,}\r?\n))`)
@@ -18,7 +19,7 @@ func ParseDecoratedJWT(contents []byte) (string, error) {
 	raw := items[0][1]
 	tmp := make([]byte, len(raw))
 	copy(tmp, raw)
-	return string(tmp), nil
+	return strings.TrimSpace(string(tmp)), nil
 }
 
 // ParseDecoratedNKey takes a creds file, finds the NKey portion and creates a
