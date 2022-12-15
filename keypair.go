@@ -36,6 +36,9 @@ func CreatePair(prefix PrefixByte) (KeyPair, error) {
 
 // CreatePair will create a KeyPair based on the rand reader and a type/prefix byte. rand can be nil.
 func CreatePairWithRand(prefix PrefixByte, rr io.Reader) (KeyPair, error) {
+	if prefix == PrefixByteCurve {
+		return CreateCurveKeysWithRand(rr)
+	}
 	if rr == nil {
 		rr = rand.Reader
 	}
@@ -125,4 +128,19 @@ func (pair *kp) Verify(input []byte, sig []byte) error {
 		return ErrInvalidSignature
 	}
 	return nil
+}
+
+// Seal is only supported on CurveKeyPair
+func (pair *kp) Seal(input []byte, recipient string) ([]byte, error) {
+	return nil, ErrInvalidNKeyOperation
+}
+
+// SealWithRand is only supported on CurveKeyPair
+func (pair *kp) SealWithRand(input []byte, recipient string, rr io.Reader) ([]byte, error) {
+	return nil, ErrInvalidNKeyOperation
+}
+
+// Open is only supported on CurveKey
+func (pair *kp) Open(input []byte, sender string) ([]byte, error) {
+	return nil, ErrInvalidNKeyOperation
 }

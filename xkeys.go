@@ -28,17 +28,6 @@ import (
 // We may add more advanced options in the future for group recipients and better
 // end to end algorithms.
 
-// CurveKeyPair provides the central interface to xkeys used for encryption.
-type CurveKeyPair interface {
-	Seed() ([]byte, error)
-	PublicKey() (string, error)
-	PrivateKey() ([]byte, error)
-	Seal(input []byte, recipient string) ([]byte, error)
-	SealWithRand(input []byte, recipient string, rr io.Reader) ([]byte, error)
-	Open(input []byte, sender string) ([]byte, error)
-	Wipe()
-}
-
 const (
 	curveKeyLen    = 32
 	curveDecodeLen = 35
@@ -50,12 +39,12 @@ type ckp struct {
 }
 
 // CreateUser will create a User typed KeyPair.
-func CreateCurveKeys() (CurveKeyPair, error) {
+func CreateCurveKeys() (KeyPair, error) {
 	return CreateCurveKeysWithRand(rand.Reader)
 }
 
 // CreateUser will create a User typed KeyPair with specified rand source.
-func CreateCurveKeysWithRand(rr io.Reader) (CurveKeyPair, error) {
+func CreateCurveKeysWithRand(rr io.Reader) (KeyPair, error) {
 	var kp ckp
 	_, err := io.ReadFull(rr, kp.seed[:])
 	if err != nil {
@@ -65,7 +54,7 @@ func CreateCurveKeysWithRand(rr io.Reader) (CurveKeyPair, error) {
 }
 
 // Will create a curve key pair from seed.
-func FromCurveSeed(seed []byte) (CurveKeyPair, error) {
+func FromCurveSeed(seed []byte) (KeyPair, error) {
 	pb, raw, err := DecodeSeed(seed)
 	if err != nil {
 		return nil, err
@@ -184,4 +173,12 @@ func (pair *ckp) Open(input []byte, sender string) ([]byte, error) {
 // Wipe will randomize the contents of the secret key
 func (pair *ckp) Wipe() {
 	io.ReadFull(rand.Reader, pair.seed[:])
+}
+
+func (pair *ckp) Sign(_ []byte) ([]byte, error) {
+	return nil, ErrInvalidCurveKeyOperation
+}
+
+func (pair *ckp) Verify(_ []byte, _ []byte) error {
+	return ErrInvalidCurveKeyOperation
 }
