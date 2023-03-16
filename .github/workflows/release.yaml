@@ -1,0 +1,58 @@
+name: NKeys Release
+
+on:
+  # We use goreleaser in release mode, so if we do a workflow_dispatch rule here then we should prompt for a tag to check out.
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  # Control the GITHUB_TOKEN permissions; GitHub's docs on which permission scopes control what are a little lacking.
+  # By having this block, all permissions not listed here are set to none.
+  # <https://goreleaser.com/ci/actions/> documents which scopes are needed for it.
+  #
+  # Uploading archives as release artifacts is bundled into the contents: permission key.
+  # The packages: permission is for pushing docker images to github (ghcr.io) instead.
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          # NB: the `fetch-depth: 0` setting is documented by goreleaser
+          # as a requirement, for the changelog feature to work correctly.
+          fetch-depth: 0
+
+      # If we do docker image builds, multi-arch, then because goreleaser can't do image builds
+      # in the style of 'crane' or 'ko', and needs a local docker daemon, then at this point
+      # we'd set up QEMU and Buildx; in other projects, we have success using:
+      #  docker/setup-qemu-action@v1
+      #  docker/setup-buildx-action@v1
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+          check-latest: true
+
+      - name: Basic integrity checks
+        run: |
+          go vet ./...
+          out="$(go list -m -retracted -f '{{if .Retracted}}{{.Path}} is retracted{{end}}' all)"
+          if [ -n "$out" ]; then
+            printf '%s\n' "$out"
+            exit 1
+          fi
+
+      - name: Run GoReleaser
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

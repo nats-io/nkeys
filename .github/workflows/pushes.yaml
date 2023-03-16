@@ -1,0 +1,107 @@
+name: GHA Build
+# The `name:` here is also used in badge.svg rendering as the left-hand-side
+
+permissions:
+  # Control the GITHUB_TOKEN permissions.
+  # By having this block, all permissions not listed here are set to none.
+  # Available permissions listed at:
+  #   <https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token>
+  # Which API calls need which permissions at what level, listed at:
+  #   <https://docs.github.com/en/rest/reference/permissions-required-for-github-apps>
+  #
+  contents: read
+  checks: write
+  statuses: write
+
+on:
+  push:
+    branches-ignore:
+      - 'exp'
+      - 'exp/*'
+      - 'exp-*'
+      - 'exp_*'
+      - 'wip'
+      - 'wip/*'
+      - 'wip-*'
+      - 'wip_*'
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      matrix:
+        include:
+          - go: '1.20.x'
+            os: ubuntu-latest
+            canonical: true
+          - go: '1.19.x'
+            os: ubuntu-latest
+            canonical: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
+          # We're not doing releases, just checks, so we can live without check-latest here
+
+      - name: Export Go environment to Actions outputs
+        id: go-settings
+        run: |
+          echo >> "$GITHUB_OUTPUT" "arch=$(go env GOARCH)"
+          echo >> "$GITHUB_OUTPUT" "hostarch=$(go env GOHOSTARCH)"
+          echo >> "$GITHUB_OUTPUT" "os=$(go env GOOS)"
+          echo >> "$GITHUB_OUTPUT" "hostos=$(go env GOHOSTOS)"
+          echo >> "$GITHUB_OUTPUT" "go-version=$(go env GOVERSION)"
+        # Use with:
+        #   ${{ steps.go-settings.outputs.go-version }}
+        # which will look like `go1.17.1` if matrix `1.17.x` matches `1.17.1`.
+        # These are independent of how the matrix is setup, or if a matrix is even used.
+        #
+        # You can see the individual values in the "Set up Go" output, collapsed inside a "go env" group at the end.
+
+      - name: Install staticcheck
+        uses: dominikh/staticcheck-action@v1.2.0
+        with:
+          version: "2022.1.1"
+
+      - name: Install additional check/lint tools
+        id: tools-install
+        run: |
+          go install github.com/mattn/goveralls@latest
+          go install github.com/client9/misspell/cmd/misspell@latest
+
+      - name: Basic Go integrity checks
+        id: integrity
+        run: |
+          $(exit $(go fmt ./... | wc -l))
+          go get -t ./...
+          go vet ./...
+          misspell -error -locale US .
+          misspell -error -locale US ./nk
+          staticcheck ./...
+
+      - name: Run Basic Tests
+        id: tests
+        run: |
+          go test -v -vet=off --race --failfast
+
+      - name: Run Coverage Tests
+        id: coverage
+        run: |
+          go test -v -covermode=count -coverprofile=coverage.out
+
+      - name: Upload coverage results
+        id: coverage-upload
+        run: |
+          goveralls -coverprofile=coverage.out -service=github
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.canonical
+
+#EOF
