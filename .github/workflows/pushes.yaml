@@ -66,7 +66,7 @@ jobs:
         # You can see the individual values in the "Set up Go" output, collapsed inside a "go env" group at the end.
 
       - name: Install staticcheck
-        uses: dominikh/staticcheck-action@v1.2.0
+        uses: dominikh/staticcheck-action@v1.3.0
         with:
           version: "2022.1.1"
 
