@@ -6,15 +6,16 @@ release:
   name_template: '{{.Tag}}'
   draft: true
 builds:
-  - main: ./nk/main.go
+  - id: nk
+    main: ./nk/main.go
     ldflags: "-X main.Version={{.Tag}}_{{.Commit}}"
     binary: nk
     goos:
-      - linux
       - darwin
+      - linux
+      - windows
     goarch:
       - amd64
-
 
 dist: build
 
