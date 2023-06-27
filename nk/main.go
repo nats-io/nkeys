@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The NATS Authors
+// Copyright 2018-2023 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -157,7 +157,7 @@ func sign(fname, keyFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%s", base64.StdEncoding.EncodeToString(sigraw))
+	log.Printf("%s", base64.RawURLEncoding.EncodeToString(sigraw))
 }
 
 func verify(fname, keyFile, pubFile, sigFile string) {
@@ -170,19 +170,11 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 	var err error
 	var kp nkeys.KeyPair
 	if keyFile != "" {
-		var seed []byte
-		seed, err = os.ReadFile(keyFile)
-		if err != nil {
-			log.Fatal(err)
-		}
+		seed := readKeyFile(keyFile)
 		kp, err = nkeys.FromSeed(seed)
 	} else {
 		// Public Key
-		var public []byte
-		public, err = os.ReadFile(pubFile)
-		if err != nil {
-			log.Fatal(err)
-		}
+		public := readKeyFile(pubFile)
 		kp, err = nkeys.FromPublicKey(string(public))
 	}
 	if err != nil {
@@ -198,7 +190,7 @@ func verify(fname, keyFile, pubFile, sigFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sig, err := base64.StdEncoding.DecodeString(string(sigEnc))
+	sig, err := base64.RawURLEncoding.DecodeString(string(sigEnc))
 	if err != nil {
 		log.Fatal(err)
 	}
