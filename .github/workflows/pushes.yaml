@@ -33,10 +33,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - go: '1.20.x'
+          - go: '1.21.x'
             os: ubuntu-latest
             canonical: true
-          - go: '1.19.x'
+          - go: '1.20.x'
             os: ubuntu-latest
             canonical: false
 
