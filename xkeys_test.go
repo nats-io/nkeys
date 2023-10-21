@@ -1,4 +1,4 @@
-// Copyright 2022 The NATS Authors
+// Copyright 2022-2023 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -152,5 +152,34 @@ func TestCurvePublic(t *testing.T) {
 	_, err = pub.SealWithRand([]byte("hello"), "bad", nil)
 	if err != ErrCannotSeal {
 		t.Fatalf("Expected %v but got %v", ErrCannotSeal, err)
+	}
+}
+
+func TestCurvePublicEmptyBug(t *testing.T) {
+	kp, _ := CreateCurveKeys()
+	pub, _ := kp.PublicKey()
+
+	rkp, _ := CreateCurveKeys()
+	rpub, _ := rkp.PublicKey()
+
+	msg := []byte("Empty public better not work!")
+	encrypted, err := kp.Seal(msg, rpub)
+	if err != nil {
+		t.Fatalf("Received an error on Seal: %v", err)
+	}
+	decrypted, err := rkp.Open(encrypted, pub)
+	if err != nil {
+		t.Fatalf("Received an error on Open: %v", err)
+	}
+	if !bytes.Equal(decrypted, msg) {
+		t.Fatalf("Expected %q to be %q", decrypted, msg)
+	}
+	// Check an empty pub key.
+	var empty [curveKeyLen]byte
+	epub, _ := Encode(PrefixByteCurve, empty[:])
+
+	_, err = rkp.Open(encrypted, string(epub))
+	if err == nil {
+		t.Fatalf("Expected a failure with empty pub key")
 	}
 }
