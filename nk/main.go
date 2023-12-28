@@ -79,6 +79,7 @@ func main() {
 
 	if *version {
 		fmt.Printf("nk version %s\n", Version)
+		return
 	}
 
 	// Create Key
