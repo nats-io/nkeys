@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - 'v[0-9]*'
+    paths-ignore:
+      - "**/*.md"
 
 permissions:
   # Control the GITHUB_TOKEN permissions; GitHub's docs on which permission scopes control what are a little lacking.
@@ -55,4 +57,3 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
