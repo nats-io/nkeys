@@ -29,7 +29,7 @@ import (
 )
 
 // this will be set during compilation when a release is made on tools
-var Version string
+var version string
 
 const defaultVanMax = 10_000_000
 
@@ -67,7 +67,7 @@ func main() {
 	var keyType = flag.String("gen", "", "Generate key for <type>, e.g. nk -gen user")
 	var pubout = flag.Bool("pubout", false, "Output public key")
 
-	var version = flag.Bool("v", false, "Show version")
+	var versionFlag = flag.Bool("v", false, "Show version")
 	var vanPre = flag.String("pre", "", "Attempt to generate public key given prefix, e.g. nk -gen user -pre derek")
 	var vanMax = flag.Int("maxpre", defaultVanMax, "Maximum attempts at generating the correct key prefix")
 
@@ -77,8 +77,8 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if *version {
-		fmt.Printf("nk version %s\n", Version)
+	if *versionFlag {
+		fmt.Printf("nk version %s\n", version)
 		return
 	}
 
