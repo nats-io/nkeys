@@ -2,31 +2,34 @@
 
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-## SYNOPSIS
-
-```bash
-nk [-gen type] [-sign file] [-verify file] [-inkey keyfile] [-pubin keyfile] [-pubout] [-e entropy]
-```
-
 ## DESCRIPTION
 
 The nk utility program can be used to generate nkeys, signing, and verify signatures.
 
+## INSTALLATION
+
+```bash
+go install github.com/nats-io/nkeys/nk@latest
+```
+
 ## COMMAND OPTIONS
 
--gen type
+```
+Usage: nk [options]
+    -v                    Show version
+    -gen <type>           Generate key for [user|account|server|cluster|operator|curve|x25519]
+    -sign <file>          Sign <file> with -inkey <keyfile>
+    -verify <file>        Verfify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>
+    -inkey <file>         Input key file (seed/private key)
+    -pubin <file>         Public key file
+    -sigfile <file>       Signature file
+    -pubout               Output public key
+    -e                    Entropy file, e.g. /dev/urandom
+    -pre <vanity>         Attempt to generate public key given prefix, e.g. nk -gen user -pre derek
+    -maxpre <N>           Maximum attempts at generating the correct key prefix, default is 10,000,000
+```
 
-Used to create an Nkey Seed of a given type. Type can be **User**, **Account**, **Server**, **Cluster**, or **Operator**
-
--sign file
-
-Used to sign the contents of file. -inkey is also required.
-
--verify file -sigfile sig
-
-Used to verify a file with a given signature. -inkey or -pubin also required.
-
-## Examples
+## EXAMPLES
 
 Create a user keypair. The result will be an encoded seed. Seeds are prefixed with an 'S', and followed by the type, e.g. U = user.
 
@@ -65,7 +68,7 @@ Verified OK
 Verified OK
 ```
 
-## License
+## LICENSE
 
 Unless otherwise noted, the NATS source files are distributed
 under the Apache Version 2.0 license found in the LICENSE file.
