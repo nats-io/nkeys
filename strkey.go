@@ -51,26 +51,38 @@ const (
 	PrefixByteUnknown PrefixByte = 25 << 3 // Base32-encodes to 'Z...'
 )
 
-var publicPrefixes = []PrefixByte{
-	PrefixByteOperator, PrefixByteServer, PrefixByteCluster, PrefixByteAccount, PrefixByteUser, PrefixByteCurve,
+var publicPrefixes = map[PrefixByte]string{
+	PrefixByteOperator: "operator",
+	PrefixByteServer:   "server",
+	PrefixByteCluster:  "cluster",
+	PrefixByteAccount:  "account",
+	PrefixByteUser:     "user",
+	PrefixByteCurve:    "x25519",
 }
 
-var privatePrefixes = []PrefixByte{
-	PrefixByteSeed, PrefixBytePrivate,
+var privatePrefixes = map[PrefixByte]string{
+	PrefixByteSeed:    "seed",
+	PrefixBytePrivate: "private",
 }
 
 // Set our encoding to not include padding '=='
 var b32Enc = base32.StdEncoding.WithPadding(base32.NoPadding)
 
-func AllowPublicPrefix(prefix PrefixByte) error {
-	for _, p := range publicPrefixes {
-		if prefix == p {
-			return ErrDuplicatePrefixByte
-		}
+// AddPublicPrefix adds a public prefix byte. Must not collide with existing prefixes.
+func AddPublicPrefix(prefix PrefixByte, name string) error {
+	if _, ok := publicPrefixes[prefix]; ok {
+		return ErrDuplicatePrefixByte
 	}
+	publicPrefixes[prefix] = name
+	return nil
+}
 
-	publicPrefixes = append(publicPrefixes, prefix)
-
+// RemovePublicPrefix removes a public prefix byte. Must be a valid prefix.
+func RemovePublicPrefix(prefix PrefixByte) error {
+	if _, ok := publicPrefixes[prefix]; !ok {
+		return ErrInvalidPrefixByte
+	}
+	delete(publicPrefixes, prefix)
 	return nil
 }
 
@@ -277,44 +289,31 @@ func IsValidPublicCurveKey(src string) bool {
 // checkValidPrefixByte returns an error if the provided value
 // is not one of the defined valid prefix byte constants.
 func checkValidPrefixByte(prefix PrefixByte) error {
-	for _, p := range privatePrefixes {
-		if prefix == p {
-			return nil
-		}
+	if _, ok := privatePrefixes[prefix]; ok {
+		return nil
 	}
+
 	return checkValidPublicPrefixByte(prefix)
 }
 
 // checkValidPublicPrefixByte returns an error if the provided value
 // is not one of the public defined valid prefix byte constants.
 func checkValidPublicPrefixByte(prefix PrefixByte) error {
-	for _, p := range publicPrefixes {
-		if prefix == p {
-			return nil
-		}
+	if _, ok := publicPrefixes[prefix]; ok {
+		return nil
 	}
 	return ErrInvalidPrefixByte
 }
 
 func (p PrefixByte) String() string {
-	switch p {
-	case PrefixByteOperator:
-		return "operator"
-	case PrefixByteServer:
-		return "server"
-	case PrefixByteCluster:
-		return "cluster"
-	case PrefixByteAccount:
-		return "account"
-	case PrefixByteUser:
-		return "user"
-	case PrefixByteSeed:
-		return "seed"
-	case PrefixBytePrivate:
-		return "private"
-	case PrefixByteCurve:
-		return "x25519"
+	if v, ok := privatePrefixes[p]; ok {
+		return v
 	}
+
+	if v, ok := publicPrefixes[p]; ok {
+		return v
+	}
+
 	return "unknown"
 }
 

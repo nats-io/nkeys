@@ -659,7 +659,7 @@ func TestValidateKeyPairRole(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var keyroles = []struct {
+	keyroles := []struct {
 		kp    KeyPair
 		roles []PrefixByte
 		ok    bool
@@ -685,7 +685,6 @@ func TestValidateKeyPairRole(t *testing.T) {
 		}
 		if err != nil && e.ok {
 			t.Fatalf("test %q should have not failed: %v", e.name, err)
-
 		}
 		if err != nil && !e.ok && err != ErrIncompatibleKey {
 			t.Fatalf("unexpected error type for %q: %v", e.name, err)
@@ -728,4 +727,20 @@ func TestSealOpen(t *testing.T) {
 	testSealOpen(t, PrefixByteOperator)
 	testSealOpen(t, PrefixByteAccount)
 	testSealOpen(t, PrefixByteUser)
+}
+
+func TestCustomPublicPrefix(t *testing.T) {
+	var prefixModule PrefixByte = 12 << 3 // Base32-encodes to 'M...'
+	AddPublicPrefix(prefixModule, "module")
+	testSealOpen(t, prefixModule)
+
+	if v := prefixModule.String(); v != "module" {
+		t.Fatalf("Expected 'module', got %v", v)
+	}
+
+	RemovePublicPrefix(prefixModule)
+
+	if v := prefixModule.String(); v != "unknown" {
+		t.Fatalf("Expected 'unknown', got %v", v)
+	}
 }
