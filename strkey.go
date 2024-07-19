@@ -51,8 +51,28 @@ const (
 	PrefixByteUnknown PrefixByte = 25 << 3 // Base32-encodes to 'Z...'
 )
 
+var publicPrefixes = []PrefixByte{
+	PrefixByteOperator, PrefixByteServer, PrefixByteCluster, PrefixByteAccount, PrefixByteUser, PrefixByteCurve,
+}
+
+var privatePrefixes = []PrefixByte{
+	PrefixByteSeed, PrefixBytePrivate,
+}
+
 // Set our encoding to not include padding '=='
 var b32Enc = base32.StdEncoding.WithPadding(base32.NoPadding)
+
+func AllowPublicPrefix(prefix PrefixByte) error {
+	for _, p := range publicPrefixes {
+		if prefix == p {
+			return ErrDuplicatePrefixByte
+		}
+	}
+
+	publicPrefixes = append(publicPrefixes, prefix)
+
+	return nil
+}
 
 // Encode will encode a raw key or seed with the prefix and crc16 and then base32 encoded.
 func Encode(prefix PrefixByte, src []byte) ([]byte, error) {
@@ -257,20 +277,21 @@ func IsValidPublicCurveKey(src string) bool {
 // checkValidPrefixByte returns an error if the provided value
 // is not one of the defined valid prefix byte constants.
 func checkValidPrefixByte(prefix PrefixByte) error {
-	switch prefix {
-	case PrefixByteOperator, PrefixByteServer, PrefixByteCluster,
-		PrefixByteAccount, PrefixByteUser, PrefixByteSeed, PrefixBytePrivate, PrefixByteCurve:
-		return nil
+	for _, p := range privatePrefixes {
+		if prefix == p {
+			return nil
+		}
 	}
-	return ErrInvalidPrefixByte
+	return checkValidPublicPrefixByte(prefix)
 }
 
 // checkValidPublicPrefixByte returns an error if the provided value
 // is not one of the public defined valid prefix byte constants.
 func checkValidPublicPrefixByte(prefix PrefixByte) error {
-	switch prefix {
-	case PrefixByteOperator, PrefixByteServer, PrefixByteCluster, PrefixByteAccount, PrefixByteUser, PrefixByteCurve:
-		return nil
+	for _, p := range publicPrefixes {
+		if prefix == p {
+			return nil
+		}
 	}
 	return ErrInvalidPrefixByte
 }
