@@ -21,7 +21,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # NB: the `fetch-depth: 0` setting is documented by goreleaser
           # as a requirement, for the changelog feature to work correctly.
@@ -34,9 +34,9 @@ jobs:
       #  docker/setup-buildx-action@v1
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: stable
           check-latest: true
 
       - name: Basic integrity checks
@@ -50,7 +50,7 @@ jobs:
 
       - name: Run GoReleaser
         id: goreleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v6
         with:
           args: release --clean
         env:

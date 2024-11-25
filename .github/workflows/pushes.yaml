@@ -33,19 +33,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - go: '1.21.x'
+          - go: stable
             os: ubuntu-latest
             canonical: true
-          - go: '1.20.x'
-            os: ubuntu-latest
-            canonical: false
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
           # We're not doing releases, just checks, so we can live without check-latest here
@@ -66,9 +63,9 @@ jobs:
         # You can see the individual values in the "Set up Go" output, collapsed inside a "go env" group at the end.
 
       - name: Install staticcheck
-        uses: dominikh/staticcheck-action@v1.3.0
+        uses: dominikh/staticcheck-action@v1.3.1
         with:
-          version: "2022.1.1"
+          version: "2024.1.1"
 
       - name: Install additional check/lint tools
         id: tools-install
