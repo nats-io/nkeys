@@ -38,7 +38,7 @@ func usage() {
     -v                    Show version
     -gen <type>           Generate key for [user|account|server|cluster|operator|curve|x25519]
     -sign <file>          Sign <file> with -inkey <keyfile>
-    -verify <file>        Verfify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>
+    -verify <file>        Verify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>
     -inkey <file>         Input key file (seed/private key)
     -pubin <file>         Public key file
     -sigfile <file>       Signature file
@@ -62,7 +62,7 @@ func main() {
 	var signFile = flag.String("sign", "", "Sign <file> with -inkey <keyfile>")
 	var sigFile = flag.String("sigfile", "", "Signature file")
 
-	var verifyFile = flag.String("verify", "", "Verfify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>")
+	var verifyFile = flag.String("verify", "", "Verify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>")
 
 	var keyType = flag.String("gen", "", "Generate key for <type>, e.g. nk -gen user")
 	var pubout = flag.Bool("pubout", false, "Output public key")
@@ -114,7 +114,7 @@ func main() {
 		return
 	}
 
-	// Verfify
+	// Verify
 	if *verifyFile != "" {
 		verify(*verifyFile, *keyFile, *pubFile, *sigFile)
 		return
