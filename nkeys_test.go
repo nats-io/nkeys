@@ -658,7 +658,7 @@ func TestValidateKeyPairRole(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var keyroles = []struct {
+	keyroles := []struct {
 		kp    KeyPair
 		roles []PrefixByte
 		ok    bool
@@ -684,7 +684,6 @@ func TestValidateKeyPairRole(t *testing.T) {
 		}
 		if err != nil && e.ok {
 			t.Fatalf("test %q should have not failed: %v", e.name, err)
-
 		}
 		if err != nil && !e.ok && err != ErrIncompatibleKey {
 			t.Fatalf("unexpected error type for %q: %v", e.name, err)
@@ -727,4 +726,76 @@ func TestSealOpen(t *testing.T) {
 	testSealOpen(t, PrefixByteOperator)
 	testSealOpen(t, PrefixByteAccount)
 	testSealOpen(t, PrefixByteUser)
+}
+
+func TestCustomPublicPrefix(t *testing.T) {
+	var modulePrefix PrefixByte = 12 << 3 // Base32-encodes to 'M...'
+
+	AddPublicPrefix(modulePrefix, "module")
+	if v := modulePrefix.String(); v != "module" {
+		t.Fatalf("Expected 'module', got %v", v)
+	}
+
+	testSealOpen(t, modulePrefix)
+
+	module, err := CreatePair(modulePrefix)
+	if err != nil {
+		t.Fatalf("Expected non-nill error on CreatePair with custom prefix, received %v", err)
+	}
+
+	if module == nil {
+		t.Fatal("Expect a non-nil keypair")
+	}
+
+	seed, err := module.Seed()
+	if err != nil {
+		t.Fatalf("Unexpected error retrieving seed: %v", err)
+	}
+
+	_, err = Decode(PrefixByteSeed, seed)
+	if err != nil {
+		t.Fatalf("Expected a proper seed string, got %s", seed)
+	}
+
+	// Check Public
+	public, err := module.PublicKey()
+	if err != nil {
+		t.Fatalf("Received an error retrieving public key: %v", err)
+	}
+	if public[0] != 'M' {
+		t.Fatalf("Expected a prefix of 'M' but got %c", public[0])
+	}
+
+	if _, err := Decode(modulePrefix, []byte(public)); err != nil {
+		t.Fatalf("Not a valid public key")
+	}
+
+	// Check Private
+	private, err := module.PrivateKey()
+	if err != nil {
+		t.Fatalf("Received an error retrieving private key: %v", err)
+	}
+	if private[0] != 'P' {
+		t.Fatalf("Expected a prefix of 'P' but got %v", private[0])
+	}
+
+	// Check Sign and Verify
+	data := []byte("Hello World")
+	sig, err := module.Sign(data)
+	if err != nil {
+		t.Fatalf("Unexpected error signing from custom prefix: %v", err)
+	}
+	if len(sig) != ed25519.SignatureSize {
+		t.Fatalf("Expected signature size of %d but got %d",
+			ed25519.SignatureSize, len(sig))
+	}
+	err = module.Verify(data, sig)
+	if err != nil {
+		t.Fatalf("Unexpected error verifying signature: %v", err)
+	}
+
+	RemovePublicPrefix(modulePrefix)
+	if v := modulePrefix.String(); v != "unknown" {
+		t.Fatalf("Expected 'unknown', got %v", v)
+	}
 }
