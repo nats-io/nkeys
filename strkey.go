@@ -185,6 +185,9 @@ func DecodeSeed(src []byte) (PrefixByte, []byte, error) {
 	if checkValidPublicPrefixByte(PrefixByte(b2)) != nil {
 		return PrefixByteSeed, nil, ErrInvalidSeed
 	}
+	if len(raw[2:]) != seedLen {
+		return PrefixByteSeed, nil, ErrInvalidSeed
+	}
 	return PrefixByte(b2), raw[2:], nil
 }
 

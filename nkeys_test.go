@@ -448,6 +448,31 @@ func TestFromSeed(t *testing.T) {
 	}
 }
 
+func TestFromSeedRequiresValidLength(t *testing.T) {
+	shortSeed := encodeTestSeed(PrefixByteUser, make([]byte, ed25519.SeedSize-1))
+	if _, err := FromSeed(shortSeed); err != ErrInvalidSeed {
+		t.Fatalf("Expected %v for short seed, got %v", ErrInvalidSeed, err)
+	}
+
+	longSeed := encodeTestSeed(PrefixByteUser, make([]byte, ed25519.SeedSize+1))
+	if _, err := FromSeed(longSeed); err != ErrInvalidSeed {
+		t.Fatalf("Expected %v for long seed, got %v", ErrInvalidSeed, err)
+	}
+}
+
+func encodeTestSeed(public PrefixByte, src []byte) []byte {
+	b1 := byte(PrefixByteSeed) | (byte(public) >> 5)
+	b2 := (byte(public) & 31) << 3
+
+	raw := append([]byte{b1, b2}, src...)
+	crc := crc16(raw)
+	raw = append(raw, byte(crc), byte(crc>>8))
+
+	buf := make([]byte, b32Enc.EncodedLen(len(raw)))
+	b32Enc.Encode(buf, raw)
+	return buf
+}
+
 func TestKeyPairFailures(t *testing.T) {
 	var tooshort [8]byte
 	if _, err := EncodeSeed(PrefixByteUser, tooshort[:]); err == nil {
