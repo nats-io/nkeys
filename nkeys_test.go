@@ -311,6 +311,16 @@ func TestIsValidPublic(t *testing.T) {
 	if !IsValidPublicKey(pub) {
 		t.Fatalf("Expected pub to be a valid public key")
 	}
+
+	shortPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize-1))
+	if IsValidPublicKey(string(shortPub)) {
+		t.Fatalf("Expected short public key to not be valid")
+	}
+
+	longPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize+1))
+	if IsValidPublicKey(string(longPub)) {
+		t.Fatalf("Expected long public key to not be valid")
+	}
 }
 
 func TestFromPublic(t *testing.T) {
@@ -379,6 +389,25 @@ func TestFromPublic(t *testing.T) {
 	err = pubUser.Verify(data, sig)
 	if err == nil {
 		t.Fatalf("Expected verification to fail.")
+	}
+}
+
+func TestFromPublicKeyRequiresValidLength(t *testing.T) {
+	shortPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize-1))
+	if _, err := FromPublicKey(string(shortPub)); err != ErrInvalidPublicKey {
+		t.Fatalf("Expected %v for short public key, got %v", ErrInvalidPublicKey, err)
+	}
+
+	longPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize+1))
+	if _, err := FromPublicKey(string(longPub)); err != ErrInvalidPublicKey {
+		t.Fatalf("Expected %v for long public key, got %v", ErrInvalidPublicKey, err)
+	}
+}
+
+func TestPublicVerifyRequiresValidPublicKeyLength(t *testing.T) {
+	pubUser := &pub{pre: PrefixByteUser, pub: make([]byte, ed25519.PublicKeySize-1)}
+	if err := pubUser.Verify([]byte("data"), make([]byte, ed25519.SignatureSize)); err != ErrInvalidPublicKey {
+		t.Fatalf("Expected %v for short public key, got %v", ErrInvalidPublicKey, err)
 	}
 }
 
