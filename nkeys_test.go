@@ -311,6 +311,16 @@ func TestIsValidPublic(t *testing.T) {
 	if !IsValidPublicKey(pub) {
 		t.Fatalf("Expected pub to be a valid public key")
 	}
+
+	shortPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize-1))
+	if IsValidPublicKey(string(shortPub)) {
+		t.Fatalf("Expected short public key to not be valid")
+	}
+
+	longPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize+1))
+	if IsValidPublicKey(string(longPub)) {
+		t.Fatalf("Expected long public key to not be valid")
+	}
 }
 
 func TestFromPublic(t *testing.T) {
@@ -382,6 +392,25 @@ func TestFromPublic(t *testing.T) {
 	}
 }
 
+func TestFromPublicKeyRequiresValidLength(t *testing.T) {
+	shortPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize-1))
+	if _, err := FromPublicKey(string(shortPub)); err != ErrInvalidPublicKey {
+		t.Fatalf("Expected %v for short public key, got %v", ErrInvalidPublicKey, err)
+	}
+
+	longPub, _ := Encode(PrefixByteUser, make([]byte, ed25519.PublicKeySize+1))
+	if _, err := FromPublicKey(string(longPub)); err != ErrInvalidPublicKey {
+		t.Fatalf("Expected %v for long public key, got %v", ErrInvalidPublicKey, err)
+	}
+}
+
+func TestPublicVerifyRequiresValidPublicKeyLength(t *testing.T) {
+	pubUser := &pub{pre: PrefixByteUser, pub: make([]byte, ed25519.PublicKeySize-1)}
+	if err := pubUser.Verify([]byte("data"), make([]byte, ed25519.SignatureSize)); err != ErrInvalidPublicKey {
+		t.Fatalf("Expected %v for short public key, got %v", ErrInvalidPublicKey, err)
+	}
+}
+
 func TestFromSeed(t *testing.T) {
 	account, err := CreateAccount()
 	if err != nil {
@@ -417,6 +446,31 @@ func TestFromSeed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error verifying signature: %v", err)
 	}
+}
+
+func TestFromSeedRequiresValidLength(t *testing.T) {
+	shortSeed := encodeTestSeed(PrefixByteUser, make([]byte, ed25519.SeedSize-1))
+	if _, err := FromSeed(shortSeed); err != ErrInvalidSeed {
+		t.Fatalf("Expected %v for short seed, got %v", ErrInvalidSeed, err)
+	}
+
+	longSeed := encodeTestSeed(PrefixByteUser, make([]byte, ed25519.SeedSize+1))
+	if _, err := FromSeed(longSeed); err != ErrInvalidSeed {
+		t.Fatalf("Expected %v for long seed, got %v", ErrInvalidSeed, err)
+	}
+}
+
+func encodeTestSeed(public PrefixByte, src []byte) []byte {
+	b1 := byte(PrefixByteSeed) | (byte(public) >> 5)
+	b2 := (byte(public) & 31) << 3
+
+	raw := append([]byte{b1, b2}, src...)
+	crc := crc16(raw)
+	raw = append(raw, byte(crc), byte(crc>>8))
+
+	buf := make([]byte, b32Enc.EncodedLen(len(raw)))
+	b32Enc.Encode(buf, raw)
+	return buf
 }
 
 func TestKeyPairFailures(t *testing.T) {
