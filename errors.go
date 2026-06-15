@@ -16,6 +16,7 @@ package nkeys
 // Errors
 const (
 	ErrInvalidPrefixByte        = nkeysError("nkeys: invalid prefix byte")
+	ErrDuplicatePrefixByte      = nkeysError("nkeys: prefix byte already present")
 	ErrInvalidKey               = nkeysError("nkeys: invalid key")
 	ErrInvalidPublicKey         = nkeysError("nkeys: invalid public key")
 	ErrInvalidPrivateKey        = nkeysError("nkeys: invalid private key")
