@@ -38,12 +38,17 @@ func CreatePairWithRand(prefix PrefixByte, rr io.Reader) (KeyPair, error) {
 	if prefix == PrefixByteCurve {
 		return CreateCurveKeysWithRand(rr)
 	}
-	_, priv, err := ed25519.GenerateKey(rr)
-	if err != nil {
-		return nil, err
-	}
-
-	seed, err := EncodeSeed(prefix, priv.Seed())
+	var (
+		seed []byte
+		err  error
+	)
+	secretDo(func() {
+		var priv ed25519.PrivateKey
+		if _, priv, err = ed25519.GenerateKey(rr); err != nil {
+			return
+		}
+		seed, err = EncodeSeed(prefix, priv.Seed())
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -79,15 +84,25 @@ func (pair *kp) Seed() ([]byte, error) {
 // PublicKey will return the encoded public key associated with the KeyPair.
 // All KeyPairs have a public key.
 func (pair *kp) PublicKey() (string, error) {
-	public, raw, err := DecodeSeed(pair.seed)
+	var (
+		public PrefixByte
+		pub    [ed25519.PublicKeySize]byte
+		err    error
+	)
+	secretDo(func() {
+		var raw []byte
+		if public, raw, err = DecodeSeed(pair.seed); err != nil {
+			return
+		}
+		var pk ed25519.PublicKey
+		if pk, _, err = ed25519.GenerateKey(bytes.NewReader(raw)); err == nil {
+			copy(pub[:], pk)
+		}
+	})
 	if err != nil {
 		return "", err
 	}
-	pub, _, err := ed25519.GenerateKey(bytes.NewReader(raw))
-	if err != nil {
-		return "", err
-	}
-	pk, err := Encode(public, pub)
+	pk, err := Encode(public, pub[:])
 	if err != nil {
 		return "", err
 	}
@@ -96,29 +111,54 @@ func (pair *kp) PublicKey() (string, error) {
 
 // PrivateKey will return the encoded private key for KeyPair.
 func (pair *kp) PrivateKey() ([]byte, error) {
-	_, priv, err := pair.keys()
-	if err != nil {
-		return nil, err
-	}
-	return Encode(PrefixBytePrivate, priv)
+	var (
+		pk  []byte
+		err error
+	)
+	secretDo(func() {
+		var priv ed25519.PrivateKey
+		if _, priv, err = pair.keys(); err != nil {
+			return
+		}
+		pk, err = Encode(PrefixBytePrivate, priv)
+	})
+	return pk, err
 }
 
 // Sign will sign the input with KeyPair's private key.
 func (pair *kp) Sign(input []byte) ([]byte, error) {
-	_, priv, err := pair.keys()
+	// Signature is allocated outside of the secret scope since it is not sensitive.
+	sig := make([]byte, ed25519.SignatureSize)
+	var err error
+	secretDo(func() {
+		var priv ed25519.PrivateKey
+		if _, priv, err = pair.keys(); err != nil {
+			return
+		}
+		copy(sig, ed25519.Sign(priv, input))
+	})
 	if err != nil {
 		return nil, err
 	}
-	return ed25519.Sign(priv, input), nil
+	return sig, nil
 }
 
 // Verify will verify the input against a signature utilizing the public key.
 func (pair *kp) Verify(input []byte, sig []byte) error {
-	pub, _, err := pair.keys()
+	var (
+		pub [ed25519.PublicKeySize]byte
+		err error
+	)
+	secretDo(func() {
+		var pk ed25519.PublicKey
+		if pk, _, err = pair.keys(); err == nil {
+			copy(pub[:], pk)
+		}
+	})
 	if err != nil {
 		return err
 	}
-	if !ed25519.Verify(pub, input, sig) {
+	if !ed25519.Verify(pub[:], input, sig) {
 		return ErrInvalidSignature
 	}
 	return nil

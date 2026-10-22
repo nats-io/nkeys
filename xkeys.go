@@ -47,45 +47,80 @@ func CreateCurveKeys() (KeyPair, error) {
 // CreateCurveKeysWithRand will create a Curve typed KeyPair
 // with specified rand source.
 func CreateCurveKeysWithRand(rr io.Reader) (KeyPair, error) {
-	var kp ckp
-	_, priv, err := ed25519.GenerateKey(rr)
+	var (
+		kp  ckp
+		err error
+	)
+	secretDo(func() {
+		var priv ed25519.PrivateKey
+		if _, priv, err = ed25519.GenerateKey(rr); err == nil {
+			kp.seed = [curveKeyLen]byte(priv.Seed())
+		}
+	})
 	if err != nil {
 		return nil, err
 	}
-	kp.seed = [curveKeyLen]byte(priv.Seed())
 	return &kp, nil
 }
 
 // Will create a curve key pair from seed.
 func FromCurveSeed(seed []byte) (KeyPair, error) {
-	pb, raw, err := DecodeSeed(seed)
+	var (
+		kp  ckp
+		err error
+	)
+	secretDo(func() {
+		var (
+			pb  PrefixByte
+			raw []byte
+		)
+		if pb, raw, err = DecodeSeed(seed); err != nil {
+			return
+		}
+		if pb != PrefixByteCurve || len(raw) != curveKeyLen {
+			err = ErrInvalidCurveSeed
+			return
+		}
+		copy(kp.seed[:], raw)
+	})
 	if err != nil {
 		return nil, err
 	}
-	if pb != PrefixByteCurve || len(raw) != curveKeyLen {
-		return nil, ErrInvalidCurveSeed
-	}
-	var kp ckp
-	copy(kp.seed[:], raw)
 	return &kp, nil
 }
 
 // Seed will return the encoded seed.
 func (pair *ckp) Seed() ([]byte, error) {
-	return EncodeSeed(PrefixByteCurve, pair.seed[:])
+	var (
+		seed []byte
+		err  error
+	)
+	secretDo(func() {
+		seed, err = EncodeSeed(PrefixByteCurve, pair.seed[:])
+	})
+	return seed, err
 }
 
 // PublicKey will return the encoded public key.
 func (pair *ckp) PublicKey() (string, error) {
 	var pub [curveKeyLen]byte
-	curve25519.ScalarBaseMult(&pub, &pair.seed)
+	secretDo(func() {
+		curve25519.ScalarBaseMult(&pub, &pair.seed)
+	})
 	key, err := Encode(PrefixByteCurve, pub[:])
 	return string(key), err
 }
 
 // PrivateKey will return the encoded private key.
 func (pair *ckp) PrivateKey() ([]byte, error) {
-	return Encode(PrefixBytePrivate, pair.seed[:])
+	var (
+		pk  []byte
+		err error
+	)
+	secretDo(func() {
+		pk, err = Encode(PrefixBytePrivate, pair.seed[:])
+	})
+	return pk, err
 }
 
 func decodePubCurveKey(src string, dest []byte) error {
@@ -145,7 +180,13 @@ func (pair *ckp) SealWithRand(input []byte, recipient string, rr io.Reader) ([]b
 	}
 	copy(out[:vlen], []byte(XKeyVersionV1))
 	copy(out[vlen:], nonce[:])
-	return box.Seal(out[:], input, &nonce, &rpub, &pair.seed), nil
+	// Size the output outside of the secret scope since it is not sensitive.
+	sealed := make([]byte, 0, len(out)+len(input)+box.Overhead)
+	sealed = append(sealed, out[:]...)
+	secretDo(func() {
+		sealed = box.Seal(sealed, input, &nonce, &rpub, &pair.seed)
+	})
+	return sealed, nil
 }
 
 func (pair *ckp) Open(input []byte, sender string) ([]byte, error) {
@@ -166,7 +207,13 @@ func (pair *ckp) Open(input []byte, sender string) ([]byte, error) {
 		return nil, ErrInvalidSender
 	}
 
-	decrypted, ok := box.Open(nil, input[vlen+curveNonceLen:], &nonce, &spub, &pair.seed)
+	var (
+		decrypted []byte
+		ok        bool
+	)
+	secretDo(func() {
+		decrypted, ok = box.Open(nil, input[vlen+curveNonceLen:], &nonce, &spub, &pair.seed)
+	})
 	if !ok {
 		return nil, ErrCouldNotDecrypt
 	}
