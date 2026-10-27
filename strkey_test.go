@@ -19,6 +19,58 @@ import (
 	"testing"
 )
 
+func TestRejectSmallOrderPublicKeys(t *testing.T) {
+	// The eight canonical small-order point encodings, followed by all six
+	// noncanonical encodings rejected by the blocklist.
+	points := [...][32]byte{
+		{1},
+		{236, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127},
+		{},
+		{31: 128},
+		{38, 232, 149, 143, 194, 178, 39, 176, 69, 195, 244, 137, 242, 239, 152, 240, 213, 223, 172, 5, 211, 198, 51, 57, 177, 56, 2, 136, 109, 83, 252, 5},
+		{38, 232, 149, 143, 194, 178, 39, 176, 69, 195, 244, 137, 242, 239, 152, 240, 213, 223, 172, 5, 211, 198, 51, 57, 177, 56, 2, 136, 109, 83, 252, 133},
+		{199, 23, 106, 112, 61, 77, 216, 79, 186, 60, 11, 118, 13, 16, 103, 15, 42, 32, 83, 250, 44, 57, 204, 198, 78, 199, 253, 119, 146, 172, 3, 122},
+		{199, 23, 106, 112, 61, 77, 216, 79, 186, 60, 11, 118, 13, 16, 103, 15, 42, 32, 83, 250, 44, 57, 204, 198, 78, 199, 253, 119, 146, 172, 3, 250},
+		{0: 1, 31: 128},
+		{236, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
+		{237, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127},
+		{237, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
+		{238, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127},
+		{238, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
+	}
+
+	validators := []struct {
+		prefix PrefixByte
+		valid  func(string) bool
+	}{
+		{PrefixByteOperator, IsValidPublicOperatorKey},
+		{PrefixByteServer, IsValidPublicServerKey},
+		{PrefixByteCluster, IsValidPublicClusterKey},
+		{PrefixByteAccount, IsValidPublicAccountKey},
+		{PrefixByteUser, IsValidPublicUserKey},
+	}
+
+	for encoding, point := range points {
+		for _, validator := range validators {
+			encoded, err := Encode(validator.prefix, point[:])
+			if err != nil {
+				t.Fatal(err)
+			}
+			public := string(encoded)
+
+			if IsValidPublicKey(public) {
+				t.Fatalf("small order encoding %d with prefix %s passed general validation", encoding, validator.prefix)
+			}
+			if validator.valid(public) {
+				t.Fatalf("small order encoding %d with prefix %s passed typed validation", encoding, validator.prefix)
+			}
+			if _, err := FromPublicKey(public); err != ErrInvalidPublicKey {
+				t.Fatalf("small order encoding %d with prefix %s: expected %v, got %v", encoding, validator.prefix, ErrInvalidPublicKey, err)
+			}
+		}
+	}
+}
+
 func BenchmarkDecode(b *testing.B) {
 	tcs := []struct {
 		name string
