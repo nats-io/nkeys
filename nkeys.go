@@ -75,7 +75,13 @@ func FromPublicKey(public string) (KeyPair, error) {
 
 // FromSeed will create a KeyPair capable of signing and verifying signatures.
 func FromSeed(seed []byte) (KeyPair, error) {
-	prefix, _, err := DecodeSeed(seed)
+	var (
+		prefix PrefixByte
+		err    error
+	)
+	secretDo(func() {
+		prefix, _, err = DecodeSeed(seed)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +94,13 @@ func FromSeed(seed []byte) (KeyPair, error) {
 
 // FromRawSeed will create a KeyPair from the raw 32 byte seed for a given type.
 func FromRawSeed(prefix PrefixByte, rawSeed []byte) (KeyPair, error) {
-	seed, err := EncodeSeed(prefix, rawSeed)
+	var (
+		seed []byte
+		err  error
+	)
+	secretDo(func() {
+		seed, err = EncodeSeed(prefix, rawSeed)
+	})
 	if err != nil {
 		return nil, err
 	}
