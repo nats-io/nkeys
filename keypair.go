@@ -14,7 +14,6 @@
 package nkeys
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"io"
@@ -62,7 +61,8 @@ func (pair *kp) keys() (ed25519.PublicKey, ed25519.PrivateKey, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return ed25519.GenerateKey(bytes.NewReader(raw))
+	priv := ed25519.NewKeyFromSeed(raw)
+	return priv.Public().(ed25519.PublicKey), priv, nil
 }
 
 // Wipe will randomize the contents of the seed key
@@ -83,10 +83,8 @@ func (pair *kp) PublicKey() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	pub, _, err := ed25519.GenerateKey(bytes.NewReader(raw))
-	if err != nil {
-		return "", err
-	}
+	priv := ed25519.NewKeyFromSeed(raw)
+	pub := priv.Public().(ed25519.PublicKey)
 	pk, err := Encode(public, pub)
 	if err != nil {
 		return "", err
