@@ -78,7 +78,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Printf("nk version %s\n", Version)
+		fmt.Printf("nk: v%s\n", nkeys.Version)
 		return
 	}
 
