@@ -32,7 +32,7 @@ func CreatePair(prefix PrefixByte) (KeyPair, error) {
 	return CreatePairWithRand(prefix, nil)
 }
 
-// CreatePair will create a KeyPair based on the rand reader and a type/prefix byte. rand can be nil.
+// CreatePairWithRand will create a KeyPair based on the rand reader and a type/prefix byte. rr can be nil.
 func CreatePairWithRand(prefix PrefixByte, rr io.Reader) (KeyPair, error) {
 	if prefix == PrefixByteCurve {
 		return CreateCurveKeysWithRand(rr)
