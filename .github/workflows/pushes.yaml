@@ -96,6 +96,12 @@ jobs:
         run: |
           go test -v -vet=off --race --failfast
 
+      - name: Run FIPS 140-3 Only-Mode Tests
+        id: fips-tests
+        run: |
+          go test -v -vet=off --race ./internal/fipsonly/
+          GOFIPS140=certified go test -v -vet=off ./internal/fipsonly/
+
       - name: Run Coverage Tests
         id: coverage
         run: |
