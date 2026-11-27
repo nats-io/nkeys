@@ -23,6 +23,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"github.com/nats-io/nkeys"
@@ -31,11 +32,24 @@ import (
 // this will be set during compilation when a release is made on tools
 var Version string
 
+// getVersion returns the release version. Builds made with `go install
+// .../nk@vX.Y.Z` do not set Version via ldflags, so fall back to the module
+// version recorded in the build info.
+func getVersion() string {
+	if Version != "" {
+		return Version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+		return info.Main.Version
+	}
+	return "(devel)"
+}
+
 const defaultVanMax = 10_000_000
 
 func usage() {
 	log.Fatalf(`Usage: nk [options]
-    -v                    Show version
+    -v, -version          Show version
     -gen <type>           Generate key for [user|account|server|cluster|operator|curve|x25519]
     -sign <file>          Sign <file> with -inkey <keyfile>
     -verify <file>        Verify <file> with -inkey <keyfile> or -pubin <public> and -sigfile <file>
@@ -68,6 +82,7 @@ func main() {
 	var pubout = flag.Bool("pubout", false, "Output public key")
 
 	var version = flag.Bool("v", false, "Show version")
+	flag.BoolVar(version, "version", false, "Show version")
 	var vanPre = flag.String("pre", "", "Attempt to generate public key given prefix, e.g. nk -gen user -pre derek")
 	var vanMax = flag.Int("maxpre", defaultVanMax, "Maximum attempts at generating the correct key prefix")
 
@@ -78,7 +93,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Printf("nk version %s\n", Version)
+		fmt.Printf("nk version %s\n", getVersion())
 		return
 	}
 
